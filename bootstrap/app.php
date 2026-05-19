@@ -12,8 +12,39 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->prepend(\App\Http\Middleware\ForceJsonResponse::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        
+        $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Resource not found.'
+            ], 404);
+        });
+
+        
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthenticated.'
+            ], 401);
+        });
+
+        
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, $request) {
+            
+            if ($e->getPrevious() instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Resource not found.'
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage() ?: 'The requested endpoint does not exist.'
+            ], 404);
+        });
     })->create();
+
