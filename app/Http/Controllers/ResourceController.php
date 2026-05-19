@@ -53,6 +53,6 @@ class ResourceController extends Controller
      */
     public function destroy(Resource $resource)
     {
-        //
+        // dginrdgidngidn 
     }
 }
