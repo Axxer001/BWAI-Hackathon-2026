@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Models\WasteScan;
+use App\Models\AiGarbageLog;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 
@@ -49,7 +50,7 @@ class WasteAssessmentController extends Controller
             $base64Image = base64_encode(file_get_contents($imagePath));
 
             $apiKey = config('services.gemini.key');
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={$apiKey}";
 
             /**
              * Construct the payload for the Gemini API.
@@ -75,8 +76,9 @@ class WasteAssessmentController extends Controller
 
             /**
              * Execute the external HTTP POST request to the Gemini API.
+             * Note: withoutVerifying() is added to bypass local Windows SSL cURL errors (error 60).
              */
-            $response = Http::post($url, $payload);
+            $response = Http::withoutVerifying()->post($url, $payload);
 
             if ($response->failed()) {
                 throw new Exception('Failed to communicate with Gemini API: ' . $response->body());
@@ -104,6 +106,17 @@ class WasteAssessmentController extends Controller
                 'image_url' => $imageUrl,
                 'ai_advice' => $wasteData['preparation_advice'] ?? 'No advice provided.',
                 'ai_classification' => $wasteData['name'] // Storing the specific waste name as ai_classification
+            ]);
+
+            /**
+             * Also log it to the AiGarbageLog table for redundancy/logs as requested.
+             */
+            AiGarbageLog::create([
+                'user_id' => $request->user_id,
+                'garbage_point_id' => $request->collection_point_id, // Map collection_point to garbage_point
+                'image_url' => $imageUrl,
+                'ai_advice' => $wasteData['preparation_advice'] ?? 'No advice provided.',
+                'garbage_type' => $wasteData['name'] 
             ]);
 
             /**
