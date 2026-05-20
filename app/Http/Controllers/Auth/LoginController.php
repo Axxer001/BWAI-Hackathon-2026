@@ -32,13 +32,27 @@ class LoginController extends Controller
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
 
-            // CHANGE THIS LINE: Swap out generic dashboard path for the direct eco-points view route
+            // Safely get the user's role in lowercase
+            $role = strtolower(Auth::user()->role);
+
+            // Route users to their specific first navigation item
+            if ($role === 'barangay') {
+                return redirect()->intended('/dashboard/schedules');
+            } elseif ($role === 'collector') {
+                return redirect()->intended('/dashboard/active-session');
+            } elseif ($role === 'admin') {
+                return redirect()->intended('/admin/users');
+            }
+
+            // Default fallback for 'user' or 'resident'
             return redirect()->intended('/dashboard/points');
         }
 
-        throw ValidationException::withMessages([
-            'email' => [trans('auth.failed')],
-        ]);
+        // REPLACE THE THROW EXCEPTION WITH THIS:
+        // This forces an HTTP redirect back to the form, carrying the errors and the old email input.
+        return back()->withErrors([
+            'email' => 'These credentials do not match our records.',
+        ])->withInput($request->only('email', 'remember'));
     }
 
     /**

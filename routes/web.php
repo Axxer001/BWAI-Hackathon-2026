@@ -66,8 +66,66 @@ Route::get('/dashboard', function () {
     return view('dashboard.index'); // This will load index.blade.php which extends layout.blade.php
 })->middleware('auth')->name('dashboard');
 
+// ─── BARANGAY ROUTES ─────────────────────────────────────────────────
 
-// Gemini api waste assessment route
+    Route::get('/dashboard/schedules', function () {
+        return view('dashboard.partials.barangay.schedules'); 
+    })->name('dashboard.schedules');
+
+    Route::get('/dashboard/fleet', function () {
+        return view('dashboard.partials.barangay.fleet'); 
+    })->name('dashboard.fleet');
+
+    Route::get('/dashboard/points-manage', function () {
+        return view('dashboard.partials.barangay.points-manage'); 
+    })->name('dashboard.points-manage');
+
+    Route::get('/dashboard/tickets-missed', function () {
+        return view('dashboard.partials.barangay.tickets-missed'); 
+    })->name('dashboard.tickets-missed');
+
+    Route::get('/dashboard/tickets-violations', function () {
+        return view('dashboard.partials.barangay.tickets-violations'); 
+    })->name('dashboard.tickets-violations');
+
+// ─── ADMIN ROUTES ────────────────────────────────────────────────────
+
+    Route::get('/admin/users', function () {
+        return view('dashboard.partials.admin.users'); 
+    })->name('admin.users');
+
+    Route::get('/admin/barangays', function () {
+        return view('dashboard.partials.admin.barangays'); 
+    })->name('admin.barangays');
+
+    Route::get('/admin/analytics', function () {
+        return view('dashboard.partials.admin.analytics'); 
+    })->name('admin.analytics');
+
+    Route::get('/admin/system-settings', function () {
+        return view('dashboard.partials.admin.system-settings'); 
+    })->name('admin.system-settings');
+
+// ─── COLLECTOR ROUTES ────────────────────────────────────────────────
+
+    Route::get('/dashboard/active-session', function () {
+        return view('dashboard.partials.collector.active-session'); 
+    })->name('dashboard.active-session');
+
+    Route::get('/dashboard/route-map', function () {
+        return view('dashboard.partials.collector.route-map'); 
+    })->name('dashboard.route-map');
+
+    Route::get('/dashboard/truck-full', function () {
+        return view('dashboard.partials.collector.truck-full'); 
+    })->name('dashboard.truck-full');
+
+    Route::get('/dashboard/point-logs', function () {
+        return view('dashboard.partials.collector.point-logs'); 
+    })->name('dashboard.point-logs');
+
+
+    // Gemini api waste assessment route
 Route::post('/api/assess-waste', [WasteAssessmentController::class, 'assess']);
 
 // Report Issue routes (AI-verified)
