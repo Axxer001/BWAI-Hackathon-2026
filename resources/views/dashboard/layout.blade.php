@@ -120,7 +120,7 @@
             <li><a href="/dashboard">Dashboard Home</a></li>
 
             @if(Auth::check())
-                @if(Auth::user()->role === 'Resident')
+                @if(Auth::user()->role === 'user')
                     @include('dashboard.partials.nav-resident')
                 @elseif(Auth::user()->role === 'Collector')
                     @include('dashboard.partials.nav-collector')
@@ -137,7 +137,7 @@
 
     <div class="main-wrapper">
         <header class="top-nav">
-            <form method="POST" action="{{ route('logout') }}">
+            <form method="POST" action="{{ route('auth.logout') }}">
                 @csrf
                 <button type="submit" class="logout-btn">Sign Out</button>
             </form>
