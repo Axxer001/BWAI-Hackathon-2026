@@ -124,7 +124,6 @@
         loadExistingPoints();
 
         // 3. Handle Map Clicks to Save New Points
-        // 3. Handle Map Clicks to Save New Points
         map.on('click', function (e) {
             let lat = e.latlng.lat;
             let lng = e.latlng.lng;
@@ -137,9 +136,6 @@
             if (pointName) {
                 savePoint(lat, lng, pointName, validBarangayId);
             }
-        } else if (validBarangayId === "YOUR-VALID-BARANGAY-UUID-HERE") {
-            alert("Please update the code with a valid barangay_id from your database before saving.");
-        }
         });
 
         function loadExistingPoints() {
