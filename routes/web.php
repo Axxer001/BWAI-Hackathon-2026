@@ -64,30 +64,200 @@ Route::get('/api/garbage-points', [MapController::class, 'getPoints']);
 Route::post('/api/garbage-points', [MapController::class, 'storePoint']);
 
 Route::get('/dashboard', function () {
-    return view('dashboard.index'); // This will load index.blade.php which extends layout.blade.php
+    $role = strtolower(auth()->user()->role);
+
+    if ($role === 'collector') {
+        return redirect()->route('dashboard.active-session');
+    }
+
+    if ($role === 'barangay') {
+        $barangayId = auth()->user()->barangay_id;
+
+        // Active trucks count
+        $activeTrucksCount = \App\Models\Truck::where('barangay_id', $barangayId)
+            ->where('is_active', true)
+            ->count();
+
+        // Total points collected today
+        // Count scans created today in the user's barangay * 5 points
+        $scansTodayCount = \App\Models\WasteScan::whereDate('created_at', today())
+            ->whereHas('user', function ($query) use ($barangayId) {
+                $query->where('barangay_id', $barangayId);
+            })
+            ->count();
+        $totalPointsToday = $scansTodayCount * 5;
+
+        // Unresolved reports count (missed collections and violations)
+        $unresolvedMissedCount = \App\Models\MissedCollectionReport::where('status', 'pending')
+            ->whereHas('collectionPoint', function ($query) use ($barangayId) {
+                $query->where('barangay_id', $barangayId);
+            })
+            ->count();
+
+        $unresolvedViolationsCount = \App\Models\ViolationReport::where('status', 'pending')
+            ->where('barangay_id', $barangayId)
+            ->count();
+
+        $unresolvedReportsCount = $unresolvedMissedCount + $unresolvedViolationsCount;
+
+        // Get recent scans
+        $recentScans = \App\Models\WasteScan::whereHas('user', function ($query) use ($barangayId) {
+                $query->where('barangay_id', $barangayId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Get collection points
+        $collectionPoints = \App\Models\CollectionPoint::where('barangay_id', $barangayId)->get();
+
+        return view('dashboard.partials.barangay.dashboard', compact(
+            'activeTrucksCount',
+            'totalPointsToday',
+            'unresolvedReportsCount',
+            'unresolvedMissedCount',
+            'unresolvedViolationsCount',
+            'recentScans',
+            'collectionPoints'
+        ));
+    }
+
+    // Default to resident points
+    return redirect()->route('dashboard.points');
 })->middleware('auth')->name('dashboard');
 
 // ─── BARANGAY ROUTES ─────────────────────────────────────────────────
 
     Route::get('/dashboard/schedules', function () {
-        return view('dashboard.partials.barangay.schedules'); 
+        $barangayId = auth()->user()->barangay_id;
+        $schedules = \App\Models\CollectionSchedule::where('barangay_id', $barangayId)->get();
+        return view('dashboard.partials.barangay.schedules', compact('schedules')); 
     })->name('dashboard.schedules');
 
+    Route::post('/dashboard/schedules', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'collection_time' => 'required',
+            'frequency' => 'required|in:weekly,bi-weekly,daily',
+        ]);
+
+        \App\Models\CollectionSchedule::create([
+            'barangay_id' => auth()->user()->barangay_id,
+            'day_of_week' => $request->day_of_week,
+            'collection_time' => $request->collection_time,
+            'frequency' => $request->frequency,
+            'is_active' => true,
+        ]);
+
+        return redirect()->back()->with('success', 'Collection schedule added successfully!');
+    })->name('dashboard.schedules.store');
+
+    Route::post('/dashboard/schedules/{id}/toggle', function ($id) {
+        $sched = \App\Models\CollectionSchedule::findOrFail($id);
+        $sched->update(['is_active' => !$sched->is_active]);
+        return redirect()->back()->with('success', 'Schedule updated successfully!');
+    })->name('dashboard.schedules.toggle');
+
+    Route::delete('/dashboard/schedules/{id}', function ($id) {
+        \App\Models\CollectionSchedule::destroy($id);
+        return redirect()->back()->with('success', 'Schedule deleted successfully!');
+    })->name('dashboard.schedules.delete');
+
     Route::get('/dashboard/fleet', function () {
-        return view('dashboard.partials.barangay.fleet'); 
+        $barangayId = auth()->user()->barangay_id;
+        $trucks = \App\Models\Truck::where('barangay_id', $barangayId)->get();
+        $collectors = \App\Models\User::where('role', 'collector')
+            ->where('barangay_id', $barangayId)
+            ->get();
+        return view('dashboard.partials.barangay.fleet', compact('trucks', 'collectors')); 
     })->name('dashboard.fleet');
+
+    Route::post('/dashboard/fleet/trucks', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'plate_number' => 'required|string|max:50',
+            'capacity_tons' => 'required|numeric|min:0.1',
+        ]);
+
+        \App\Models\Truck::create([
+            'plate_number' => $request->plate_number,
+            'capacity_tons' => $request->capacity_tons,
+            'barangay_id' => auth()->user()->barangay_id,
+            'is_active' => true,
+        ]);
+
+        return redirect()->back()->with('success', 'Truck added to fleet successfully!');
+    })->name('dashboard.fleet.trucks.store');
+
+    Route::post('/dashboard/fleet/trucks/{id}/toggle', function ($id) {
+        $truck = \App\Models\Truck::findOrFail($id);
+        $truck->update(['is_active' => !$truck->is_active]);
+        return redirect()->back()->with('success', 'Truck status updated successfully!');
+    })->name('dashboard.fleet.trucks.toggle');
+
+    Route::post('/dashboard/fleet/collectors', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'full_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|string|min:6',
+        ]);
+
+        \App\Models\User::create([
+            'full_name' => $request->full_name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'password' => bcrypt($request->password),
+            'role' => 'collector',
+            'barangay_id' => auth()->user()->barangay_id,
+            'is_active' => true,
+        ]);
+
+        return redirect()->back()->with('success', 'Collector account created successfully!');
+    })->name('dashboard.fleet.collectors.store');
 
     Route::get('/dashboard/points-manage', function () {
         return view('dashboard.partials.barangay.points-manage'); 
     })->name('dashboard.points-manage');
 
+    Route::get('/api/barangay/live-tracking', function () {
+        $barangayId = auth()->user()->barangay_id;
+        $sessions = \App\Models\CollectionSession::where('status', 'active')
+            ->where('barangay_id', $barangayId)
+            ->with(['collector', 'sessionPoints.garbagePoint'])
+            ->get();
+        return response()->json($sessions);
+    })->name('api.barangay.live-tracking');
+
     Route::get('/dashboard/tickets-missed', function () {
-        return view('dashboard.partials.barangay.tickets-missed'); 
+        $barangayId = auth()->user()->barangay_id;
+        $reports = \App\Models\MissedCollectionReport::whereHas('collectionPoint', function ($query) use ($barangayId) {
+            $query->where('barangay_id', $barangayId);
+        })->with(['reporter', 'collectionPoint'])->orderBy('created_at', 'desc')->get();
+        return view('dashboard.partials.barangay.tickets-missed', compact('reports')); 
     })->name('dashboard.tickets-missed');
 
+    Route::post('/dashboard/tickets-missed/{id}/action', function (\Illuminate\Http\Request $request, $id) {
+        $report = \App\Models\MissedCollectionReport::findOrFail($id);
+        $request->validate(['status' => 'required|in:resolved,invalid']);
+        $report->update(['status' => $request->status]);
+        return redirect()->back()->with('success', 'Missed collection ticket updated successfully!');
+    })->name('dashboard.tickets-missed.action');
+
     Route::get('/dashboard/tickets-violations', function () {
-        return view('dashboard.partials.barangay.tickets-violations'); 
+        $barangayId = auth()->user()->barangay_id;
+        $reports = \App\Models\ViolationReport::where('barangay_id', $barangayId)
+            ->with('reporter')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return view('dashboard.partials.barangay.tickets-violations', compact('reports')); 
     })->name('dashboard.tickets-violations');
+
+    Route::post('/dashboard/tickets-violations/{id}/action', function (\Illuminate\Http\Request $request, $id) {
+        $report = \App\Models\ViolationReport::findOrFail($id);
+        $request->validate(['status' => 'required|in:resolved,investigating,dismissed']);
+        $report->update(['status' => $request->status]);
+        return redirect()->back()->with('success', 'Violation ticket updated successfully!');
+    })->name('dashboard.tickets-violations.action');
 
 // ─── ADMIN ROUTES ────────────────────────────────────────────────────
 

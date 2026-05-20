@@ -38,4 +38,12 @@ class MissedCollectionReport extends Model
     {
         return $this->belongsTo(User::class, 'reported_by');
     }
+
+    /**
+     * Get the collection point associated with this report.
+     */
+    public function collectionPoint(): BelongsTo
+    {
+        return $this->belongsTo(CollectionPoint::class);
+    }
 }

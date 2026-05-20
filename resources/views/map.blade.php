@@ -116,8 +116,38 @@
                 map.panTo(userLocation);
             }, (error) => {
                 console.error("Geolocation error:", error);
-                document.getElementById('eta-info').innerText = "Location access denied. Routing unavailable.";
+                // Fallback to Zamboanga Center
+                userLocation = L.latLng(6.9214, 122.0790);
+                L.circleMarker(userLocation, {
+                    color: '#f59e0b',
+                    fillColor: '#f59e0b',
+                    fillOpacity: 0.8,
+                    radius: 8
+                }).addTo(map).bindPopup("Fallback Location (Zamboanga Center)").openPopup();
+                
+                if (error.code === error.PERMISSION_DENIED) {
+                    document.getElementById('eta-info').innerText = "Location permission denied. Using Zamboanga Center fallback.";
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    document.getElementById('eta-info').innerText = "GPS/Location services disabled in OS settings. Using Zamboanga Center fallback.";
+                } else if (error.code === error.TIMEOUT) {
+                    document.getElementById('eta-info').innerText = "Location request timed out. Using Zamboanga Center fallback.";
+                } else {
+                    document.getElementById('eta-info').innerText = "Location unavailable. Using Zamboanga Center fallback.";
+                }
+            }, {
+                enableHighAccuracy: false,
+                timeout: 8000,
+                maximumAge: Infinity
             });
+        } else {
+            userLocation = L.latLng(6.9214, 122.0790);
+            L.circleMarker(userLocation, {
+                color: '#f59e0b',
+                fillColor: '#f59e0b',
+                fillOpacity: 0.8,
+                radius: 8
+            }).addTo(map).bindPopup("Fallback Location (Zamboanga Center)").openPopup();
+            document.getElementById('eta-info').innerText = "Geolocation not supported. Using fallback location.";
         }
 
         // 2. Fetch existing points from the database
