@@ -480,11 +480,22 @@ Route::get('/dashboard/point-logs', [CollectionSessionController::class, 'pointL
 
 
 // Gemini api waste assessment route
+// Gemini api waste assessment route
 Route::post('/api/assess-waste', [WasteAssessmentController::class, 'assess']);
 
 // Report Issue routes (AI-verified)
 Route::post('/api/reports/violation', [ReportIssueController::class, 'reportViolation']);
 Route::post('/api/reports/missed-collection', [ReportIssueController::class, 'reportMissedCollection']);
+
+// SMS Notifications
+Route::post('/api/notify/truck-approaching', [\App\Http\Controllers\SmsNotificationController::class, 'notifyApproaching']);
+Route::get('/api/notify/test', [\App\Http\Controllers\SmsNotificationController::class, 'sendTest']);
+
+
+// SMS Notifications
+Route::post('/api/notify/truck-approaching', [\App\Http\Controllers\SmsNotificationController::class, 'notifyApproaching']);
+Route::get('/api/notify/test', [\App\Http\Controllers\SmsNotificationController::class, 'sendTest']);
+
 
 Route::middleware(['auth'])->group(function () {
     // Show the form (GET) - This will now properly trigger your controller!
