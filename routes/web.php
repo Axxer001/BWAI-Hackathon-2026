@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\WasteAssessmentController;
+use App\Http\Controllers\ReportIssueController;
 
 // Landing Page
 Route::get('/', function () {
@@ -68,6 +69,10 @@ Route::get('/dashboard', function () {
 
 // Gemini api waste assessment route
 Route::post('/api/assess-waste', [WasteAssessmentController::class, 'assess']);
+
+// Report Issue routes (AI-verified)
+Route::post('/api/reports/violation', [ReportIssueController::class, 'reportViolation']);
+Route::post('/api/reports/missed-collection', [ReportIssueController::class, 'reportMissedCollection']);
 
 // Include the map routes
 require __DIR__.'/map.php';
