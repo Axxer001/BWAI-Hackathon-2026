@@ -119,13 +119,10 @@ Route::get('/dashboard', function () {
     Route::post('/dashboard/route-map/{id}/complete', [CollectionSessionController::class, 'completeRoute'])->middleware('auth')->name('dashboard.complete-route');
     Route::post('/dashboard/route-map/{sessionId}/point/{pointId}/status', [CollectionSessionController::class, 'updatePointStatus'])->middleware('auth')->name('dashboard.update-point-status');
 
-    Route::get('/dashboard/truck-full', function () {
-        return view('dashboard.partials.collector.truck-full'); 
-    })->middleware('auth')->name('dashboard.truck-full');
+    Route::get('/dashboard/truck-full', [CollectionSessionController::class, 'truckFull'])->middleware('auth')->name('dashboard.truck-full');
+    Route::post('/dashboard/truck-full', [CollectionSessionController::class, 'logTruckFull'])->middleware('auth')->name('dashboard.log-truck-full');
 
-    Route::get('/dashboard/point-logs', function () {
-        return view('dashboard.partials.collector.point-logs'); 
-    })->middleware('auth')->name('dashboard.point-logs');
+    Route::get('/dashboard/point-logs', [CollectionSessionController::class, 'pointLogs'])->middleware('auth')->name('dashboard.point-logs');
 
 
     // Gemini api waste assessment route
