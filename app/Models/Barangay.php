@@ -29,6 +29,16 @@ class Barangay extends Model
         return $this->hasMany(User::class);
     }
 
+    public function trucks(): HasMany
+    {
+        return $this->hasMany(Truck::class);
+    }
+
+    public function collectionPoints(): HasMany
+    {
+        return $this->hasMany(CollectionPoint::class);
+    }
+
     public function garbagePoints(): HasMany
     {
         return $this->hasMany(GarbagePoint::class);

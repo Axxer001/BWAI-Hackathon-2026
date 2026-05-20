@@ -39,14 +39,17 @@
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden antialiased font-poppins">
+<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden antialiased font-poppins relative">
+
+    {{-- ═══════════ MOBILE OVERLAY ═══════════ --}}
+    <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden md:hidden opacity-0 transition-opacity duration-300"></div>
 
     {{-- ═══════════ SIDEBAR ═══════════ --}}
-    <aside class="w-[280px] bg-slate-900 flex flex-col flex-shrink-0 shadow-2xl z-20 relative font-poppins">
+    <aside id="sidebar" class="w-[280px] bg-slate-900 flex flex-col flex-shrink-0 shadow-2xl z-50 fixed inset-y-0 left-0 md:relative transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out font-poppins">
         
         <div class="absolute inset-0 bg-gradient-to-b from-blue-900/20 to-green-900/10 pointer-events-none"></div>
 
-        <div class="relative h-[76px] flex items-center px-6 border-b border-white/10">
+        <div class="relative h-[76px] flex items-center justify-between px-6 border-b border-white/10">
             <a href="/" class="flex items-center gap-2 text-xl font-extrabold text-white no-underline tracking-tight">
                 <div class="w-8 h-8 bg-green-600 rounded-[10px] flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-600/30">
                     <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
@@ -55,6 +58,10 @@
                 </div>
                 Limpio<span class="text-green-500">Zambo</span>
             </a>
+            
+            <button id="close-sidebar" class="md:hidden text-white/70 hover:text-white transition-colors p-1">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
         
         <div class="relative p-5 mx-4 mt-6 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm">
@@ -93,8 +100,13 @@
     {{-- ═══════════ MAIN CONTENT AREA ═══════════ --}}
     <div class="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50/50 font-poppins">
         
-        <header class="h-[76px] bg-white border-b border-slate-200 flex items-center justify-end px-8 flex-shrink-0 z-10">
-            <div class="flex items-center gap-6">
+        <header class="h-[76px] bg-white border-b border-slate-200 flex items-center justify-between md:justify-end px-4 md:px-8 flex-shrink-0 z-10">
+            
+            <button id="open-sidebar" class="md:hidden p-2 -ml-2 text-slate-500 hover:text-green-600 transition-colors rounded-lg">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+
+            <div class="flex items-center gap-4 md:gap-6">
                 <button class="relative text-slate-400 hover:text-slate-600 transition-colors">
                     <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
@@ -102,22 +114,124 @@
                 
                 <div class="h-8 w-px bg-slate-200"></div>
 
-                <form method="POST" action="{{ route('auth.logout') }}">
+                <form id="logout-form" method="POST" action="{{ route('auth.logout') }}">
                     @csrf
-                    <button type="submit" class="text-sm font-semibold text-slate-500 hover:text-red-600 flex items-center gap-2 transition-colors">
-                        Sign Out
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    <button type="button" id="logout-btn" class="text-sm font-semibold text-slate-500 hover:text-red-600 flex items-center gap-2 transition-colors">
+                        <span class="hidden sm:inline">Sign Out</span>
+                        <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                     </button>
                 </form>
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-8 animate-slideUp">
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 animate-slideUp">
             <div class="max-w-6xl mx-auto">
                 @yield('content')
             </div>
         </main>
     </div>
 
+    {{-- ═══════════ LOGOUT CONFIRMATION MODAL ═══════════ --}}
+    <div id="logout-modal" class="fixed inset-0 z-[100] hidden">
+        <div id="logout-backdrop" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 opacity-0 cursor-pointer"></div>
+        
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0 pointer-events-none">
+            <div id="logout-dialog" class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm w-full opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 duration-300 pointer-events-auto">
+                
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-extrabold text-slate-900">Sign out</h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-slate-500 font-medium">Are you sure you want to end your session? You will need to log back in to access the dashboard.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-50 px-4 py-4 sm:px-6 sm:flex sm:flex-row-reverse border-t border-slate-100 gap-3">
+                    <button type="button" id="confirm-logout-btn" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-bold text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm transition-colors">
+                        Yes, sign me out
+                    </button>
+                    <button type="button" id="cancel-logout-btn" class="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-xl border border-slate-200 shadow-sm px-4 py-2 bg-white text-base font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 sm:w-auto sm:text-sm transition-colors">
+                        Cancel
+                    </button>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    {{-- ═══════════ SCRIPT LOGIC ═══════════ --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Sidebar Logic ---
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const openBtn = document.getElementById('open-sidebar');
+            const closeBtn = document.getElementById('close-sidebar');
+
+            const openSidebar = () => {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            };
+
+            const closeSidebar = () => {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            };
+
+            openBtn.addEventListener('click', openSidebar);
+            closeBtn.addEventListener('click', closeSidebar);
+            overlay.addEventListener('click', closeSidebar);
+
+            // --- Logout Modal Logic ---
+            const logoutBtn = document.getElementById('logout-btn');
+            const logoutModal = document.getElementById('logout-modal');
+            const logoutBackdrop = document.getElementById('logout-backdrop');
+            const logoutDialog = document.getElementById('logout-dialog');
+            const cancelLogoutBtn = document.getElementById('cancel-logout-btn');
+            const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
+            const logoutForm = document.getElementById('logout-form');
+
+            const openLogoutModal = () => {
+                logoutModal.classList.remove('hidden');
+                // Trigger reflow to ensure animations play out
+                void logoutModal.offsetWidth;
+                
+                logoutBackdrop.classList.remove('opacity-0');
+                
+                logoutDialog.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                logoutDialog.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+            };
+
+            const closeLogoutModal = () => {
+                logoutBackdrop.classList.add('opacity-0');
+                
+                logoutDialog.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+                logoutDialog.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                
+                setTimeout(() => {
+                    logoutModal.classList.add('hidden');
+                }, 300); // Matches the duration-300 class
+            };
+
+            logoutBtn.addEventListener('click', openLogoutModal);
+            cancelLogoutBtn.addEventListener('click', closeLogoutModal);
+            logoutBackdrop.addEventListener('click', closeLogoutModal); // Click outside to cancel
+
+            // Actually submit the form when confirmed
+            confirmLogoutBtn.addEventListener('click', () => {
+                logoutForm.submit();
+            });
+        });
+    </script>
 </body>
 </html>
