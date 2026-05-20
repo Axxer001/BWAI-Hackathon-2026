@@ -42,24 +42,25 @@ GEMINI_API_KEY=your_api_key_here
 | Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `image` | File | **Yes** | The image of the waste to be analyzed (max 5MB). |
-| `barangay_id` | Integer | **Yes** | The ID of the barangay of the user scanning the waste. |
+| `user_id` | UUID | **Yes** | The UUID of the user scanning the waste. |
+| `garbage_point_id` | UUID | No | The UUID of the garbage point (if applicable). |
 
 ### Example using cURL
 ```bash
 curl -X POST http://localhost:8000/api/assess-waste \
   -H "Accept: application/json" \
   -F "image=@/path/to/your/plastic-bottle.jpg" \
-  -F "barangay_id=14"
+  -F "user_id=123e4567-e89b-12d3-a456-426614174000"
 ```
 
 ### Example using JavaScript (Fetch API)
 ```javascript
 const fileInput = document.querySelector('input[type="file"]');
-const barangayId = 14; 
+const userId = '123e4567-e89b-12d3-a456-426614174000'; 
 
 const formData = new FormData();
 formData.append('image', fileInput.files[0]);
-formData.append('barangay_id', barangayId);
+formData.append('user_id', userId);
 
 // Note: If calling from a Blade view, include your X-CSRF-TOKEN header
 fetch('/api/assess-waste', {
