@@ -11,7 +11,12 @@ use App\Models\Truck;
 use App\Models\CollectionSchedule;
 use App\Models\CollectionPoint;
 use App\Models\TruckFullEvent;
+use App\Models\User;
+use App\Models\UserPointAssignment;
+use App\Mail\TruckApproachingMail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CollectionSessionController extends Controller
@@ -70,11 +75,12 @@ class CollectionSessionController extends Controller
 
         if (!$session) {
             $session = CollectionSession::create([
+                'barangay_id'  => $barangayId,
                 'collector_id' => $user->id,
-                'schedule_id' => $schedule->id,
-                'truck_id' => $truck->id,
+                'schedule_id'  => $schedule->id,
+                'truck_id'     => $truck->id,
                 'session_date' => now()->toDateString(),
-                'status' => 'pending',
+                'status'       => 'pending',
             ]);
 
             // Link garbage points to this session
@@ -128,11 +134,12 @@ class CollectionSessionController extends Controller
         if (!$session) {
             $schedule = $this->getCollectionScheduleForBarangay($barangayId);
             $session = CollectionSession::create([
+                'barangay_id'  => $barangayId,
                 'collector_id' => $user->id,
-                'schedule_id' => $schedule->id,
-                'truck_id' => optional(Truck::where('barangay_id', $barangayId)->where('is_active', true)->first())->id,
+                'schedule_id'  => $schedule->id,
+                'truck_id'     => optional(Truck::where('barangay_id', $barangayId)->where('is_active', true)->first())->id,
                 'session_date' => now()->toDateString(),
-                'status' => 'pending',
+                'status'       => 'pending',
             ]);
 
             // Get garbage points for this barangay
@@ -247,11 +254,16 @@ class CollectionSessionController extends Controller
 
         $sessionPoint->update($updateData);
 
+        // ── Auto-notify residents when truck arrives at their collection point ──
+        if ($request->status === 'collected') {
+            $this->notifyResidentsAtPoint($sessionPoint->garbage_point_id);
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Point status updated successfully.',
-                'point' => $sessionPoint,
+                'point'   => $sessionPoint,
             ]);
         }
 
