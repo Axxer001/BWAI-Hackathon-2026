@@ -51,6 +51,6 @@ class RegisterController extends Controller
         Auth::login($user);
 
         // Redirect safely out to core landing home view context elements
-        return redirect('/');
+        return back()->with('success', 'Your LimpioZambo account has been successfully created. You can now log in!');
     }
 }

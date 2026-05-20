@@ -251,5 +251,82 @@
         </div>
     </div>
 
+    {{-- ═══════════ REGISTRATION STATUS MODAL ═══════════ --}}
+    @if(session('success') || $errors->any())
+        <div id="status-modal" class="fixed inset-0 z-[100] flex items-center justify-center px-4">
+            <div id="status-backdrop" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer transition-opacity duration-300 opacity-0"></div>
+
+            <div id="status-dialog" class="relative bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:max-w-sm w-full p-8 z-10 scale-95 opacity-0 duration-300">
+                
+                @if(session('success'))
+                    {{-- SUCCESS STATE --}}
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-5 shadow-[0_0_20px_rgba(34,197,94,0.2)]">
+                        <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-extrabold text-slate-900 text-center mb-2 tracking-tight">Account Created!</h3>
+                    <p class="text-sm text-slate-500 text-center mb-8 leading-relaxed">
+                        {{ session('success') ?? 'Welcome to LimpioZambo. Your account has been registered successfully.' }}
+                    </p>
+                    <a href="{{ route('auth.login') }}" class="w-full flex justify-center items-center gap-2 rounded-xl bg-green-600 py-3.5 text-sm font-bold text-white hover:bg-green-700 shadow-[0_4px_14px_rgba(22,163,74,.35)] hover:shadow-[0_6px_20px_rgba(22,163,74,.45)] hover:-translate-y-0.5 transition-all">
+                        Proceed to Sign In
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </a>
+                @else
+                    {{-- ERROR STATE --}}
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-5 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                        <svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-extrabold text-slate-900 text-center mb-2 tracking-tight">Registration Failed</h3>
+                    <p class="text-sm text-slate-500 text-center mb-8 leading-relaxed">
+                        We couldn't create your account. Please check the highlighted fields on the form to correct the errors.
+                    </p>
+                    <button id="close-status-btn" type="button" class="w-full flex justify-center rounded-xl bg-slate-100 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors">
+                        Review Form
+                    </button>
+                @endif
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const modal = document.getElementById('status-modal');
+                const dialog = document.getElementById('status-dialog');
+                const backdrop = document.getElementById('status-backdrop');
+                const closeBtn = document.getElementById('close-status-btn');
+
+                if (modal) {
+                    // Trigger the entry animations 50ms after the DOM loads
+                    setTimeout(() => {
+                        backdrop.classList.remove('opacity-0');
+                        dialog.classList.remove('scale-95', 'opacity-0');
+                        dialog.classList.add('scale-100', 'opacity-100');
+                    }, 50);
+
+                    // Smooth closing function
+                    const closeModal = () => {
+                        dialog.classList.remove('scale-100', 'opacity-100');
+                        dialog.classList.add('scale-95', 'opacity-0');
+                        backdrop.classList.add('opacity-0');
+                        
+                        // Remove from DOM after transition completes
+                        setTimeout(() => modal.remove(), 300);
+                    };
+
+                    // Only the error state has a close button. Success forces them to click "Login"
+                    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+                    
+                    // Allow clicking the dark background to close ONLY if it's an error
+                    @if($errors->any())
+                        if (backdrop) backdrop.addEventListener('click', closeModal);
+                    @endif
+                }
+            });
+        </script>
+    @endif
+
 </body>
 </html>
