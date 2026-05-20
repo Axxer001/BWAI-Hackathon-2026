@@ -68,3 +68,6 @@ Route::get('/dashboard', function () {
 
 // Gemini api waste assessment route
 Route::post('/api/assess-waste', [WasteAssessmentController::class, 'assess']);
+
+// Include the map routes
+require __DIR__.'/map.php';
