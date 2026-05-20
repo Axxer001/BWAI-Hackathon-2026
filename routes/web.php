@@ -47,7 +47,16 @@ Route::get('/dashboard/points-map', function () {
         ->where('status', 'ongoing')
         ->first();
 
-    // 4. Get today's collection schedule
+    // 4. Load session points if there is an active collection session
+    $sessionPoints = collect();
+    if ($activeSession) {
+        $sessionPoints = \App\Models\SessionPoint::where('session_id', $activeSession->id)
+            ->with('garbagePoint')
+            ->orderBy('route_order')
+            ->get();
+    }
+
+    // 5. Get today's collection schedule
     $today = strtolower(now()->format('l')); // e.g., 'monday'
     $todaySchedule = \App\Models\CollectionSchedule::where('barangay_id', $user->barangay_id)
         ->where('day_of_week', $today)
@@ -58,6 +67,7 @@ Route::get('/dashboard/points-map', function () {
         'collectionPoint',
         'barangayPoints',
         'activeSession',
+        'sessionPoints',
         'todaySchedule'
     ));
 })->middleware('auth')->name('dashboard.points-map');

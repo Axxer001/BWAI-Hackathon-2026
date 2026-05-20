@@ -3,6 +3,55 @@
 @section('title', 'My Collection Point')
 
 @section('content')
+    <!-- Calculate Live Route Status & ETA in PHP -->
+    @php
+        $stopsAway = null;
+        $etaMinutes = null;
+        $statusText = 'Ongoing';
+        $statusColor = 'text-emerald-400';
+        $isUserPointCollected = false;
+
+        if ($activeSession && $collectionPoint && $sessionPoints->isNotEmpty()) {
+            $userPointIndex = null;
+            $currentTargetIndex = null;
+
+            foreach ($sessionPoints as $index => $sp) {
+                if ($sp->garbage_point_id === $collectionPoint->id) {
+                    $userPointIndex = $index;
+                    if ($sp->status === 'collected') {
+                        $isUserPointCollected = true;
+                    }
+                }
+                if ($currentTargetIndex === null && $sp->status === 'pending') {
+                    $currentTargetIndex = $index;
+                }
+            }
+
+            if ($isUserPointCollected) {
+                $statusText = 'Collected';
+                $statusColor = 'text-slate-400';
+            } elseif ($currentTargetIndex !== null && $userPointIndex !== null) {
+                if ($currentTargetIndex < $userPointIndex) {
+                    $stopsAway = $userPointIndex - $currentTargetIndex;
+                    $etaMinutes = $stopsAway * 7; // Estimated 7 mins per stop
+                    $statusText = $stopsAway . ' Stop' . ($stopsAway > 1 ? 's' : '') . ' Away';
+                    $statusColor = 'text-sky-400';
+                } elseif ($currentTargetIndex === $userPointIndex) {
+                    $stopsAway = 0;
+                    $etaMinutes = 0;
+                    $statusText = 'Arrived';
+                    $statusColor = 'text-emerald-400';
+                } else {
+                    $statusText = 'Passed your Point';
+                    $statusColor = 'text-amber-400';
+                }
+            } elseif ($currentTargetIndex === null) {
+                $statusText = 'Completed';
+                $statusColor = 'text-emerald-400';
+            }
+        }
+    @endphp
+
     <!-- Leaflet CSS and JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -135,11 +184,26 @@
                     </div>
 
                     @if($activeSession)
-                        <p class="text-slate-400 text-xs mb-1">Truck is currently on route</p>
+                        <p class="text-slate-400 text-xs mb-1">Current Status</p>
                         <div class="flex items-end gap-2 mb-1">
-                            <span class="text-3xl font-extrabold tracking-tight text-white leading-none text-emerald-400">Ongoing</span>
+                            <span class="text-2xl font-extrabold tracking-tight {{ $statusColor }} leading-none">{{ $statusText }}</span>
                         </div>
-                        <p class="text-slate-400 text-sm mb-5">
+                        
+                        @if($etaMinutes !== null && $etaMinutes > 0)
+                            <p class="text-slate-300 text-sm mt-3 flex items-center gap-2">
+                                <span>⏱️</span> ETA: <strong class="text-white">{{ $etaMinutes }} mins</strong>
+                            </p>
+                        @elseif($etaMinutes === 0 && !$isUserPointCollected)
+                            <p class="text-emerald-400 text-sm mt-3 flex items-center gap-2 font-bold animate-pulse">
+                                <span>🚚</span> The truck is at your collection point now!
+                            </p>
+                        @elseif($isUserPointCollected)
+                            <p class="text-slate-400 text-sm mt-3 flex items-center gap-2 font-bold">
+                                <span>✅</span> Your waste was successfully collected!
+                            </p>
+                        @endif
+
+                        <p class="text-slate-400 text-xs mt-4 pt-4 border-t border-white/10">
                             Collector: <span class="text-white font-semibold">{{ $activeSession->collector->full_name ?? 'Assigned Driver' }}</span>
                         </p>
                     @else
@@ -247,7 +311,7 @@
     <!-- Leaflet Script Logic -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Standard Leaflet Marker Icons
+            // Leaflet Marker Icon Colors configuration
             const defaultIcon = new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -266,21 +330,116 @@
                 shadowSize: [41, 41]
             });
 
+            const completedIcon = new L.Icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+
+            const skippedIcon = new L.Icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+
+            const truckIcon = L.divIcon({
+                html: '<div style="font-size: 32px; line-height: 1; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.35));" class="animate-bounce">🚚</div>',
+                className: 'truck-emoji-marker',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+
             @if($collectionPoint)
-                // Initialize map centered at the assigned point
-                const map = L.map('map').setView([{{ $collectionPoint->latitude }}, {{ $collectionPoint->longitude }}], 16);
+                @if($activeSession && $sessionPoints->isNotEmpty())
+                    // CASE 1: Active route in progress and user has point assigned. Show all points + route + truck
+                    const map = L.map('map').setView([{{ $collectionPoint->latitude }}, {{ $collectionPoint->longitude }}], 15);
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
 
-                // Add active point marker (assigned shows as Green)
-                const marker = L.marker([{{ $collectionPoint->latitude }}, {{ $collectionPoint->longitude }}], { icon: selectedIcon }).addTo(map);
-                marker.bindPopup("<div class='custom-popup font-bold text-xs p-1'>Your Assigned Collection Point:<br>{{ $collectionPoint->name }}</div>").openPopup();
+                    const sessionPoints = [
+                        @foreach($sessionPoints as $point)
+                        {
+                            id: "{{ $point->garbage_point_id }}",
+                            name: "{{ $point->garbagePoint->name }}",
+                            lat: parseFloat("{{ $point->garbagePoint->latitude }}"),
+                            lng: parseFloat("{{ $point->garbagePoint->longitude }}"),
+                            status: "{{ $point->status }}",
+                            order: parseInt("{{ $point->route_order }}")
+                        },
+                        @endforeach
+                    ];
+
+                    // Find index of first pending point (current target of truck)
+                    let currentPendingIndex = -1;
+                    for (let i = 0; i < sessionPoints.length; i++) {
+                        if (sessionPoints[i].status === 'pending') {
+                            currentPendingIndex = i;
+                            break;
+                        }
+                    }
+
+                    sessionPoints.forEach(function (point, index) {
+                        let iconToUse = defaultIcon;
+                        let popupText = "<strong>Point " + point.order + ": " + point.name + "</strong>";
+
+                        if (point.id === "{{ $collectionPoint->id }}") {
+                            iconToUse = selectedIcon;
+                            popupText += "<br><span style='color:#10b981; font-weight:bold;'>★ Your Assigned Collection Point</span>";
+                            if (point.status === 'collected') {
+                                popupText += " (Collected)";
+                            }
+                        } else if (point.status === 'collected') {
+                            iconToUse = completedIcon;
+                            popupText += "<br><span style='color:#6b7280;'>Collected</span>";
+                        } else if (point.status === 'skipped') {
+                            iconToUse = skippedIcon;
+                            popupText += "<br><span style='color:#ef4444;'>Skipped</span>";
+                        }
+
+                        // Add normal marker
+                        const m = L.marker([point.lat, point.lng], { icon: iconToUse }).addTo(map);
+                        m.bindPopup(popupText);
+
+                        // If this checkpoint is where the truck is currently heading, render the bouncing Truck on top of it!
+                        if (index === currentPendingIndex) {
+                            const truckMarker = L.marker([point.lat, point.lng], { icon: truckIcon }).addTo(map);
+                            truckMarker.bindPopup("<strong>🚚 Live Garbage Truck</strong><br>Next Destination: " + point.name).openPopup();
+                        }
+                    });
+
+                    // Draw the route lines connecting points
+                    const routeCoordinates = sessionPoints.map(p => [p.lat, p.lng]);
+                    L.polyline(routeCoordinates, {
+                        color: '#3b82f6',
+                        weight: 4,
+                        opacity: 0.6,
+                        dashArray: '5, 10'
+                    }).addTo(map);
+
+                @else
+                    // CASE 2: No active session, just show user's single green assigned point
+                    const map = L.map('map').setView([{{ $collectionPoint->latitude }}, {{ $collectionPoint->longitude }}], 16);
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+
+                    const marker = L.marker([{{ $collectionPoint->latitude }}, {{ $collectionPoint->longitude }}], { icon: selectedIcon }).addTo(map);
+                    marker.bindPopup("<div class='custom-popup font-bold text-xs p-1'>Your Assigned Collection Point:<br>{{ $collectionPoint->name }}</div>").openPopup();
+                @endif
 
             @else
-                // Initialize map centered on user's Barangay points, or default Zamboanga City center
+                // CASE 3: Point is not assigned yet. Allow selection from map
                 const points = @json($barangayPoints);
                 const defaultCenter = points.length > 0 ? [points[0].latitude, points[0].longitude] : [6.9214, 122.0790];
                 const map = L.map('map').setView(defaultCenter, 14);
@@ -302,32 +461,25 @@
                     });
                 });
 
-                // Function to select point
                 window.selectPointOnMap = function (id, lat, lng, name, address) {
-                    // Reset previous selected marker to default blue icon
                     if (currentSelectedId && markers[currentSelectedId]) {
                         markers[currentSelectedId].setIcon(defaultIcon);
                     }
 
-                    // Set current selected marker to green icon
                     if (markers[id]) {
                         markers[id].setIcon(selectedIcon);
                         currentSelectedId = id;
                     }
 
-                    // Update hidden forms
                     document.getElementById('hidden-point-id').value = id;
                     document.getElementById('selected-point-name').textContent = name;
                     document.getElementById('selected-point-address').textContent = address;
                     
-                    // Show confirmation panel
                     const panel = document.getElementById('selection-panel');
                     panel.classList.remove('hidden');
 
-                    // Focus map
                     map.setView([lat, lng], 16);
 
-                    // Open popup
                     if (markers[id]) {
                         markers[id].bindPopup("<div class='font-bold text-xs p-1'>" + name + "</div>").openPopup();
                     }
