@@ -39,20 +39,4 @@ return [
         'key' => env('GEMINI_API_KEY'),
     ],
 
-    'semaphore' => [
-        'api_key'     => env('SEMAPHORE_API_KEY'),
-        'sender_name' => env('SEMAPHORE_SENDER_NAME', 'LimpioZambo'),
-    ],
-
-    'open_sms' => [
-        'api_key'  => env('OPEN_SMS_API_KEY', env('SEMAPHORE_API_KEY')),
-        'endpoint' => env('OPEN_SMS_ENDPOINT', 'https://smsapiph.onrender.com/api/v1/send/sms'),
-    ],
-
-    'twilio' => [
-        'sid'   => env('TWILIO_SID'),
-        'token' => env('TWILIO_AUTH_TOKEN'),
-        'from'  => env('TWILIO_FROM'),
-    ],
-
 ];
