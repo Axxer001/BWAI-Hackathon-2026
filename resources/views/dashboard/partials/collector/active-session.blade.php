@@ -56,8 +56,9 @@
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Select Plate Number</label>
                     <select name="plate_number" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-white transition-all text-slate-700 font-semibold">
-                        <option value="IX-7701">IX-7701 (Truck A-102)</option>
-                        <option value="IX-4482">IX-4482 (Truck B-405)</option>
+                        @foreach($trucks as $truck)
+                            <option value="{{ $truck->plate_number }}">{{ $truck->plate_number }} (Capacity: {{ $truck->capacity_tons }} tons)</option>
+                        @endforeach
                     </select>
                 </div>
 
