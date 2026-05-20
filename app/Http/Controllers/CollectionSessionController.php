@@ -100,9 +100,12 @@ class CollectionSessionController extends Controller
 
         // Start the route session
         $session->update([
-            'status' => 'ongoing',
+            'status'     => 'ongoing',
             'started_at' => now(),
         ]);
+
+        // ── Notify all residents in this barangay that collection has started ──
+        $this->notifyResidentsSessionStarted($barangayId);
 
         return redirect()->route('dashboard.route-map')->with('success', 'Collection shift started successfully!');
     }
@@ -210,6 +213,9 @@ class CollectionSessionController extends Controller
                 'status' => 'ongoing',
                 'started_at' => now(),
             ]);
+
+            // ── Notify all residents in this barangay that collection has started ──
+            $this->notifyResidentsSessionStarted($session->barangay_id);
         }
 
         return redirect()->back()->with('success', 'Route navigation active! Drive safely.');
@@ -337,9 +343,89 @@ class CollectionSessionController extends Controller
     }
 
     /**
+     * Email all residents in a barangay when a collector starts their session.
+     * Sends an advance notice so residents can prepare their waste.
+     */
+    private function notifyResidentsSessionStarted(string $barangayId): void
+    {
+        $barangay     = Barangay::find($barangayId);
+        $barangayName = $barangay?->name ?? 'your Barangay';
+
+        // Get all active garbage points in this barangay
+        $points = GarbagePoint::where('barangay_id', $barangayId)
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('id');
+
+        // Fetch all active residents (role = 'user') registered in this barangay
+        $residents = User::where('barangay_id', $barangayId)
+            ->where('role', 'user')
+            ->where('is_active', true)
+            ->whereNotNull('email')
+            ->with(['pointAssignments' => function ($q) {
+                $q->where('is_active', true);
+            }])
+            ->get();
+
+        foreach ($residents as $resident) {
+            // Find which specific point this resident is assigned to (if any)
+            $assignedPointId = $resident->pointAssignments->first()?->garbage_point_id;
+            $point           = $points->get($assignedPointId);
+            $pointName       = $point?->name ?? 'your assigned collection point';
+
+            try {
+                Mail::to($resident->email, $resident->full_name)
+                    ->send(new TruckApproachingMail(
+                        residentName: $resident->full_name,
+                        pointName:    $pointName,
+                        etaMinutes:   30,  // general ETA when session just started
+                        barangayName: $barangayName,
+                    ));
+                Log::info("[TruckNotify] Session-start email sent to {$resident->email}");
+            } catch (\Exception $e) {
+                Log::error("[TruckNotify] Failed session-start email to {$resident->email}: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Email all residents assigned to a garbage point when the truck arrives.
+     */
+    private function notifyResidentsAtPoint(string $garbagePointId): void
+
+    {
+        $point    = GarbagePoint::with('barangay')->find($garbagePointId);
+        if (!$point) return;
+
+        $barangayName = $point->barangay?->name ?? 'your Barangay';
+
+        // Get all active residents assigned to this specific point who have email
+        $residents = User::whereHas('pointAssignments', function ($q) use ($garbagePointId) {
+            $q->where('garbage_point_id', $garbagePointId)
+              ->where('is_active', true);
+        })->whereNotNull('email')->get();
+
+        foreach ($residents as $resident) {
+            try {
+                Mail::to($resident->email, $resident->full_name)
+                    ->send(new TruckApproachingMail(
+                        residentName: $resident->full_name,
+                        pointName:    $point->name,
+                        etaMinutes:   0,   // truck is already there
+                        barangayName: $barangayName,
+                    ));
+                Log::info("[TruckNotify] Arrival email sent to {$resident->email} — {$point->name}");
+            } catch (\Exception $e) {
+                Log::error("[TruckNotify] Failed to email {$resident->email}: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
      * Private helper to seed default garbage points for Calarian / Baliwasan if none exist.
      */
     private function ensureGarbagePointsExist($barangayId)
+
     {
         if (GarbagePoint::where('barangay_id', $barangayId)->count() === 0) {
             $barangay = Barangay::find($barangayId) ?? Barangay::first();
