@@ -30,7 +30,11 @@ Route::group(['prefix' => 'auth', 'as' => 'auth.'], function () {
 // API routes for map data (fetching and saving)
 Route::get('/api/garbage-points', [MapController::class, 'getPoints']);
 Route::post('/api/garbage-points', [MapController::class, 'storePoint']);
-Route::post('/api/assess-waste', [WasteAssessmentController::class, 'assess']);
+
 Route::get('/dashboard', function () {
     return view('dashboard.index'); // This will load index.blade.php which extends layout.blade.php
 })->middleware('auth')->name('dashboard');
+
+
+// Gemini api waste assessment route
+Route::post('/api/assess-waste', [WasteAssessmentController::class, 'assess']);
