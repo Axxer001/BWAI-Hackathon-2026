@@ -30,16 +30,31 @@ Route::group(['prefix' => 'auth', 'as' => 'auth.'], function () {
 // Dashboard Routing Group (Protected by Auth)
 Route::middleware('auth')->group(function () {
     
-    // Main Dashboard Home
-    Route::get('/dashboard', function () {
-        return view('dashboard.index'); 
-    })->name('dashboard');
-
     // User: Eco-Points View
     Route::get('/dashboard/points', function () {
         // Points to: resources/views/dashboard/partials/user/my-eco-points.blade.php
         return view('dashboard.partials.user.my-eco-points'); 
     })->name('dashboard.points');
+
+    Route::get('/dashboard/points-map', function () {
+        return view('dashboard.partials.user.my-collection-point'); 
+    })->name('dashboard.points-map');
+
+    // 💡 Add the rest of your user routes below as you build the views:
+    
+    /*
+    Route::get('/dashboard/ai-scanner', function () {
+        return view('dashboard.partials.user.ai-scanner'); 
+    });
+
+    Route::get('/dashboard/report-missed', function () {
+        return view('dashboard.partials.user.report-missed'); 
+    });
+
+    Route::get('/dashboard/report-violation', function () {
+        return view('dashboard.partials.user.report-violation'); 
+    });
+    */
 
 });
 // API routes for map data (fetching and saving)
