@@ -66,6 +66,10 @@ Route::post('/api/garbage-points', [MapController::class, 'storePoint']);
 Route::get('/dashboard', function () {
     $role = strtolower(auth()->user()->role);
 
+    if ($role === 'admin') {
+        return redirect()->route('admin.overview');
+    }
+
     if ($role === 'collector') {
         return redirect()->route('dashboard.active-session');
     }
@@ -261,17 +265,155 @@ Route::get('/dashboard', function () {
 
 // ─── ADMIN ROUTES ────────────────────────────────────────────────────
 
-    Route::get('/admin/users', function () {
-        return view('dashboard.partials.admin.users'); 
+    Route::get('/admin/overview', function () {
+        $totalBarangays = \App\Models\Barangay::count();
+        $totalEcoPoints = \DB::table('eco_points_transactions')->sum('points');
+        $totalWaste = \App\Models\CollectionReport::sum('completed_points') * 0.1;
+        $totalTrucks = \App\Models\Truck::count();
+        $barangays = \App\Models\Barangay::withCount(['users', 'trucks', 'collectionPoints'])->get();
+        
+        return view('dashboard.partials.admin.overview', compact('totalBarangays', 'totalEcoPoints', 'totalWaste', 'totalTrucks', 'barangays'));
+    })->name('admin.overview');
+
+    Route::get('/admin/users', function (\Illuminate\Http\Request $request) {
+        $search = $request->query('search');
+        $role = $request->query('role');
+        
+        $query = \App\Models\User::with('barangay');
+        
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        if ($role) {
+            $query->where('role', $role);
+        }
+        
+        $users = $query->orderBy('created_at', 'desc')->paginate(20);
+        $barangays = \App\Models\Barangay::all();
+        
+        return view('dashboard.partials.admin.users', compact('users', 'barangays'));
     })->name('admin.users');
 
+    Route::post('/admin/users/{id}/toggle-status', function ($id) {
+        $user = \App\Models\User::findOrFail($id);
+        if ($user->id === auth()->id()) {
+            return redirect()->back()->with('error', 'You cannot suspend your own account!');
+        }
+        $user->is_active = !$user->is_active;
+        $user->save();
+        return redirect()->back()->with('success', 'User account status toggled successfully!');
+    })->name('admin.users.toggle');
+
+    Route::post('/admin/users/{id}/update', function (\Illuminate\Http\Request $request, $id) {
+        $user = \App\Models\User::findOrFail($id);
+        $request->validate([
+            'full_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,'.$id,
+            'role' => 'required|in:admin,barangay,collector,user',
+            'barangay_id' => 'nullable|exists:barangays,id',
+        ]);
+        
+        $user->update($request->only('full_name', 'email', 'role', 'barangay_id'));
+        return redirect()->back()->with('success', 'User updated successfully!');
+    })->name('admin.users.update');
+
     Route::get('/admin/barangays', function () {
-        return view('dashboard.partials.admin.barangays'); 
+        $barangays = \App\Models\Barangay::withCount(['users', 'trucks', 'collectionPoints'])->get();
+        return view('dashboard.partials.admin.barangays', compact('barangays')); 
     })->name('admin.barangays');
 
+    Route::post('/admin/barangays', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'district' => 'required|string|max:255',
+            'admin_name' => 'nullable|string|max:255',
+            'admin_email' => 'nullable|email|unique:users,email',
+            'admin_password' => 'nullable|min:6',
+        ]);
+
+        \DB::transaction(function () use ($request) {
+            $barangay = \App\Models\Barangay::create([
+                'name' => $request->name,
+                'district' => $request->district,
+            ]);
+
+            if ($request->filled('admin_email')) {
+                \App\Models\User::create([
+                    'full_name' => $request->admin_name ?? ($request->name . ' Admin'),
+                    'email' => $request->admin_email,
+                    'password' => bcrypt($request->admin_password),
+                    'role' => 'barangay',
+                    'barangay_id' => $barangay->id,
+                ]);
+            }
+        });
+
+        return redirect()->back()->with('success', 'Barangay onboarded successfully!');
+    })->name('admin.barangays.store');
+
     Route::get('/admin/analytics', function () {
-        return view('dashboard.partials.admin.analytics'); 
+        $totalEcoPoints = \DB::table('eco_points_transactions')->sum('points');
+        $totalWaste = \App\Models\CollectionReport::sum('completed_points') * 0.1;
+        $totalViolations = \App\Models\ViolationReport::where('status', 'pending')->count();
+        $barangays = \App\Models\Barangay::all()->map(function($b) {
+            $sessions = \App\Models\CollectionSession::where('barangay_id', $b->id)->pluck('id');
+            $reports = \App\Models\CollectionReport::whereIn('session_id', $sessions)->get();
+            $b->completed_count = $reports->count();
+            $b->waste_collected = $reports->sum('completed_points') * 0.1;
+            $b->points_distributed = $reports->sum('total_points');
+            $b->avg_completion = $b->completed_count > 0 
+                ? round($reports->avg(function($r) { return $r->completionRate(); }), 2) 
+                : 0;
+            return $b;
+        });
+        return view('dashboard.partials.admin.analytics', compact('totalEcoPoints', 'totalWaste', 'totalViolations', 'barangays')); 
     })->name('admin.analytics');
+
+    Route::get('/admin/analytics/download', function () {
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=barangay_efficiency_report.csv",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $barangays = \App\Models\Barangay::all();
+
+        $callback = function() use($barangays) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Barangay Name', 'Completed Sessions', 'Total Notified Residents', 'Total Eco-Points Distributed', 'Avg Completion Rate (%)']);
+
+            foreach ($barangays as $barangay) {
+                $sessions = \App\Models\CollectionSession::where('barangay_id', $barangay->id)->pluck('id');
+                $reports = \App\Models\CollectionReport::whereIn('session_id', $sessions)->get();
+                
+                $completedCount = $reports->count();
+                $totalNotified = $reports->sum('total_notified_users');
+                $totalPoints = $reports->sum('total_points');
+                
+                $avgCompletion = $completedCount > 0 
+                    ? round($reports->avg(function($r) { return $r->completionRate(); }), 2) 
+                    : 0;
+
+                fputcsv($file, [
+                    $barangay->name,
+                    $completedCount,
+                    $totalNotified,
+                    $totalPoints,
+                    $avgCompletion
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    })->name('admin.analytics.download');
 
     Route::get('/admin/system-settings', function () {
         return view('dashboard.partials.admin.system-settings'); 
