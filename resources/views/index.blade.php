@@ -122,11 +122,11 @@
 
         <!-- CTA buttons -->
         <div class="flex gap-3">
-            <a href="{{ route('login') }}"
+            <a href="{{ route('auth.login') }}"
                class="text-sm font-semibold text-slate-700 border border-slate-200 px-4 py-2 rounded-lg hover:border-green-500 hover:text-green-700 transition-all">
                 Log In
             </a>
-            <a href="{{ route('register') }}"
+            <a href="{{ route('auth.register') }}"
                class="text-sm font-semibold text-white bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 hover:-translate-y-0.5 transition-all">
                 Register
             </a>
@@ -155,8 +155,8 @@
         </p>
 
         <div class="flex gap-3 flex-wrap">
-            <a href="{{ route('register') }}"
-               class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-base font-semibold text-white bg-green-600 hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(22,163,74,.25)] transition-all">
+            <a href="{{ route('auth.register') }}"
+            class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-base font-semibold text-white bg-green-600 hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(22,163,74,.25)] transition-all">
                 Join Your Barangay →
             </a>
             <a href="#features"

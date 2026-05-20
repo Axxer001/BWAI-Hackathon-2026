@@ -22,7 +22,6 @@ class LoginController extends Controller
      */
     public function login(Request $request)
     {
-        // 1. Validate form fields
         $credentials = $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
@@ -30,15 +29,13 @@ class LoginController extends Controller
 
         $remember = $request->boolean('remember');
 
-        // 2. Attempt authentication match
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
 
-            // Redirect back to landing or a protected home/dashboard view
-            return redirect()->intended('/');
+            // CHANGE THIS LINE: Redirect directly to the dashboard layout workspace
+            return redirect()->intended('/dashboard');
         }
 
-        // 3. Throw authentication error if credentials fail match
         throw ValidationException::withMessages([
             'email' => [trans('auth.failed')],
         ]);
