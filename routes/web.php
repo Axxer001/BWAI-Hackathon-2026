@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\WasteAssessmentController;
 
 // Landing Page
 Route::get('/', function () {
@@ -41,3 +42,14 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard.points');
 
 });
+// API routes for map data (fetching and saving)
+Route::get('/api/garbage-points', [MapController::class, 'getPoints']);
+Route::post('/api/garbage-points', [MapController::class, 'storePoint']);
+
+Route::get('/dashboard', function () {
+    return view('dashboard.index'); // This will load index.blade.php which extends layout.blade.php
+})->middleware('auth')->name('dashboard');
+
+
+// Gemini api waste assessment route
+Route::post('/api/assess-waste', [WasteAssessmentController::class, 'assess']);
