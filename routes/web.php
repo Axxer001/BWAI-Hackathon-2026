@@ -45,9 +45,7 @@ Route::middleware('auth')->group(function () {
     // 💡 Add the rest of your user routes below as you build the views:
     
     
-    Route::get('/dashboard/ai-scanner', function () {
-        return view('dashboard.partials.user.my-ai-waste-scanner'); 
-    });
+    Route::get('/dashboard/ai-scanner', [WasteAssessmentController::class, 'showScanner'])->name('dashboard.ai-scanner');
 
     
     Route::get('/dashboard/report-missed', function () {

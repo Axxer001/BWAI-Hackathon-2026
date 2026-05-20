@@ -6,11 +6,34 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Models\WasteScan;
 use App\Models\AiGarbageLog;
+use App\Models\CollectionPoint;
+use App\Models\Barangay;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Exception;
 
 class WasteAssessmentController extends Controller
 {
+    /**
+     * Show the user's AI waste scanner dashboard view.
+     */
+    public function showScanner()
+    {
+        $user = Auth::user();
+        $barangayId = $user->barangay_id ?? Barangay::first()->id;
+
+        $collectionPoints = CollectionPoint::where('barangay_id', $barangayId)
+            ->where('is_active', true)
+            ->get();
+
+        $scans = WasteScan::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $totalPoints = $scans->count() * 5;
+
+        return view('dashboard.partials.user.my-ai-waste-scanner', compact('collectionPoints', 'scans', 'totalPoints'));
+    }
     /**
      * Assesses an uploaded waste image using the Gemini API.
      * 
@@ -110,10 +133,42 @@ class WasteAssessmentController extends Controller
 
             /**
              * Also log it to the AiGarbageLog table for redundancy/logs as requested.
+             * We dynamically resolve the collection_point_id to the garbage_points table to avoid foreign key violations.
              */
+            $garbagePointId = null;
+            if ($request->collection_point_id) {
+                $gp = \App\Models\GarbagePoint::find($request->collection_point_id);
+                if ($gp) {
+                    $garbagePointId = $gp->id;
+                } else {
+                    $cp = CollectionPoint::find($request->collection_point_id);
+                    if ($cp) {
+                        $matchedGp = \App\Models\GarbagePoint::where('barangay_id', $cp->barangay_id)
+                            ->where('name', $cp->name)
+                            ->first();
+                        if ($matchedGp) {
+                            $garbagePointId = $matchedGp->id;
+                        } else {
+                            \Illuminate\Support\Facades\DB::table('garbage_points')->insert([
+                                'id' => $cp->id,
+                                'name' => $cp->name,
+                                'latitude' => $cp->latitude,
+                                'longitude' => $cp->longitude,
+                                'address' => $cp->address,
+                                'barangay_id' => $cp->barangay_id,
+                                'is_active' => $cp->is_active ? 1 : 0,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                            $garbagePointId = $cp->id;
+                        }
+                    }
+                }
+            }
+
             AiGarbageLog::create([
                 'user_id' => $request->user_id,
-                'garbage_point_id' => $request->collection_point_id, // Map collection_point to garbage_point
+                'garbage_point_id' => $garbagePointId,
                 'image_url' => $imageUrl,
                 'ai_advice' => $wasteData['preparation_advice'] ?? 'No advice provided.',
                 'garbage_type' => $wasteData['name'] 
