@@ -140,10 +140,6 @@
 <section class="min-h-screen grid md:grid-cols-2 gap-16 items-center max-w-7xl mx-auto px-6 pt-28 pb-12">
 
     <div class="relative z-10 reveal">
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold tracking-widest uppercase bg-green-50 text-green-700 border border-green-200 mb-6">
-            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-            Zamboanga City, Philippines
-        </div>
 
         <h1 class="font-poppins text-[clamp(2.6rem,4.5vw,4rem)] font-extrabold leading-[1.1] tracking-tight text-slate-900 mb-5">
             Garbage collection,<br>
@@ -185,7 +181,7 @@
         </div>
 
         <div class="absolute top-0 right-0 w-[72%] h-[75%] z-[3] rounded-2xl overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,.12)] transition-all duration-[900ms]">
-            <img id="mainImg" src="https://picsum.photos/seed/waste1/700/500" alt="Collection" class="w-full h-full object-cover block" />
+           <img id="mainImg" src="{{ asset('images/garbage_collection.jpg') }}" alt="Collection" class="w-full h-full object-cover block" />
             <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             <div class="absolute bottom-0 left-0 right-0 p-5 text-white text-xs font-medium tracking-wide">
                 <strong id="mainCaption" class="block text-[15px] font-bold mb-0.5">Barangay collection in progress</strong>
@@ -195,7 +191,7 @@
         </div>
 
         <div class="absolute bottom-0 left-0 w-[48%] h-[52%] z-[4] rounded-2xl overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,.12)]">
-            <img id="sideImg" src="https://picsum.photos/seed/side1/500/400" alt="Bins" class="w-full h-full object-cover block" />
+           <img id="sideImg" src="{{ asset('images/segregate.jpg') }}" alt="Bins" class="w-full h-full object-cover block" />s
             <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             <div class="absolute bottom-0 left-0 right-0 p-4 text-white text-[11px] font-semibold">
                 <strong id="sideCaption">Segregated bins ready</strong>
@@ -253,35 +249,47 @@
     <div id="galleryTrack" class="gallery-track"></div>
 </div>
 
-<section class="py-24 px-6" id="problem">
+<section class="py-20 px-6" id="problem">
     <div class="max-w-5xl mx-auto">
-        <div class="reveal">
-            <p class="text-[11px] font-bold tracking-[.08em] uppercase text-green-600 mb-3">Why We Built This</p>
-            <h2 class="font-poppins text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
-                Addressing real gaps in<br>Zamboanga's waste system
+        <div class="reveal mb-10">
+            <p class="text-xs font-semibold tracking-widest uppercase text-green-600 mb-2">Why We Built This</p>
+            <h2 class="font-poppins text-[clamp(1.6rem,3vw,2.2rem)] font-bold text-slate-900 leading-tight mb-3">
+                The gaps we're solving
             </h2>
-            <p class="text-base text-slate-500 max-w-xl leading-[1.75] mb-12">
-                Zamboanga City already has City Ordinance No. 500 and EO KHYM 062-2025 mandating scheduled, segregated collection. LimpioZambo doesn't replace that — it makes it finally work.
+            <p class="text-sm text-slate-500 max-w-lg leading-relaxed">
+                Zamboanga City already has City Ordinance No. 500 mandating scheduled collection. LimpioZambo doesn't replace that — it fills what's missing.
             </p>
         </div>
-        <div class="grid md:grid-cols-3 gap-6">
-            <div class="relative bg-white border border-slate-200 rounded-2xl p-7 overflow-hidden prob-red reveal delay-1">
-                <div class="text-2xl mb-4">📋</div>
-                <h3 class="text-sm font-bold text-slate-900 mb-2">Ordinance Defines the Schedule</h3>
-                <p class="text-[13.5px] text-slate-500 leading-[1.65]">City Ordinance No. 500 already mandates time-and-type schedules per barangay. Residents must set out garbage 15 minutes before 8 AM — but no one gets notified in real time.</p>
-                <span class="inline-flex items-center gap-1 mt-4 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">City Ordinance No. 500</span>
+
+        <div class="grid md:grid-cols-3 gap-5">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 reveal delay-1">
+                <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center mb-4">
+                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-semibold text-slate-800 mb-2">Schedule is already defined</h3>
+                <p class="text-sm text-slate-500 leading-relaxed">City Ordinance No. 500 sets the collection time and waste type per barangay. Residents must set out garbage before 8 AM — but no one is notified when the truck is actually coming.</p>
             </div>
-            <div class="relative bg-white border border-slate-200 rounded-2xl p-7 overflow-hidden prob-amber reveal delay-2">
-                <div class="text-2xl mb-4">🚛</div>
-                <h3 class="text-sm font-bold text-slate-900 mb-2">Trucks Break Down, People Don't Know</h3>
-                <p class="text-[13.5px] text-slate-500 leading-[1.65]">A documented, recurring issue in Zamboanga City: defective trucks delay or skip entire routes. Residents wait, garbage piles up, and violations get issued — even when residents did everything right.</p>
-                <span class="inline-flex items-center gap-1 mt-4 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">Documented failure mode</span>
+
+            <div class="bg-white border border-slate-200 rounded-xl p-6 reveal delay-2">
+                <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center mb-4">
+                    <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-semibold text-slate-800 mb-2">Trucks break down, no one is told</h3>
+                <p class="text-sm text-slate-500 leading-relaxed">Defective trucks are a recurring issue in Zamboanga City. When a route is delayed or skipped, residents have no way of knowing — garbage piles up and violations get issued unfairly.</p>
             </div>
-            <div class="relative bg-white border border-slate-200 rounded-2xl p-7 overflow-hidden prob-green reveal delay-3">
-                <div class="text-2xl mb-4">✅</div>
-                <h3 class="text-sm font-bold text-slate-900 mb-2">We Add an Intelligence Layer</h3>
-                <p class="text-[13.5px] text-slate-500 leading-[1.65]">LimpioZambo sits on top of the existing fixed schedule — pushing real-time notifications, logging delays with auto-escalation, giving barangays live dashboards, and adding AI-assisted waste classification.</p>
-                <span class="inline-flex items-center gap-1 mt-4 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Our innovation</span>
+
+            <div class="bg-white border border-slate-200 rounded-xl p-6 reveal delay-3">
+                <div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center mb-4">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-semibold text-slate-800 mb-2">We built the missing layer</h3>
+                <p class="text-sm text-slate-500 leading-relaxed">LimpioZambo sits on top of the existing schedule — notifying residents before collection, alerting barangays when trucks are late, and letting users scan waste with AI before going to the collection point.</p>
             </div>
         </div>
     </div>
@@ -662,14 +670,22 @@ if (statsEl) countObs.observe(statsEl.closest('div').parentElement);
 
 // Hero photo slideshow
 const photos = [
-    { main: { src: 'https://picsum.photos/seed/waste1/700/500', cap: 'Barangay collection in progress', sub: 'Zamboanga City · Zone 2' },
-      side: { src: 'https://picsum.photos/seed/side1/500/400', cap: 'Segregated bins ready' } },
-    { main: { src: 'https://picsum.photos/seed/waste2/700/500', cap: 'Collector marking GPS point', sub: 'Route Session Active' },
-      side: { src: 'https://picsum.photos/seed/side2/500/400', cap: 'Community waste drive' } },
-    { main: { src: 'https://picsum.photos/seed/waste3/700/500', cap: 'Color-coded waste segregation', sub: 'City Ordinance No. 500 compliant' },
-      side: { src: 'https://picsum.photos/seed/side3/500/400', cap: 'MRF facility processing' } },
-    { main: { src: 'https://picsum.photos/seed/waste4/700/500', cap: 'Resident app notification', sub: 'SMS alert before collection' },
-      side: { src: 'https://picsum.photos/seed/side4/500/400', cap: 'Green community initiative' } },
+    {
+        main: { src: "{{ asset('images/collect.jpg') }}", cap: 'Barangay collection in progress', sub: 'Zamboanga City · Zone 2' },
+        side: { src: "{{ asset('images/segregate_garbage.jpg') }}", cap: 'Segregated bins ready' }
+    },
+    {
+        main: { src: "{{ asset('images/gps.jpg') }}", cap: 'Collector marking GPS point', sub: 'Route Session Active' },
+        side: { src: "{{ asset('images/waste_drive.jpg') }}", cap: 'Community waste drive' }
+    },
+    {
+        main: { src: "{{ asset('images/color_coded.jpg') }}", cap: 'Color-coded waste segregation', sub: 'City Ordinance No. 500 compliant' },
+        side: { src: "{{ asset('images/mrf.jpg') }}", cap: 'MRF facility processing' }
+    },
+    {
+        main: { src: "{{ asset('images/sms.jpg') }}", cap: 'Resident app notification', sub: 'SMS alert before collection' },
+        side: { src: "{{ asset('images/green_initiative.jpg') }}", cap: 'Green community initiative' }
+    },
 ];
 let photoIdx = 0;
 const mainImg = document.getElementById('mainImg');
@@ -704,14 +720,16 @@ setInterval(() => goToPhoto((photoIdx + 1) % photos.length), 4000);
 
 // Gallery strip
 const galleryPhotos = [
-    { src: 'https://picsum.photos/seed/g1/400/260', label: 'Collection in progress' },
-    { src: 'https://picsum.photos/seed/g2/400/260', label: 'GPS point logged' },
-    { src: 'https://picsum.photos/seed/g3/400/260', label: 'Segregated bins' },
-    { src: 'https://picsum.photos/seed/g4/400/260', label: 'MRF processing' },
-    { src: 'https://picsum.photos/seed/g5/400/260', label: 'Green community' },
-    { src: 'https://picsum.photos/seed/g6/400/260', label: 'Color-coded waste' },
-    { src: 'https://picsum.photos/seed/g7/400/260', label: 'Community drive' },
-    { src: 'https://picsum.photos/seed/g8/400/260', label: 'App notification' },
+    { src: "{{ asset('images/garbage2.jpg') }}", label: 'Collection in progress' },
+    { src: "{{ asset('images/gps2.jpg') }}", label: 'GPS point logged' },
+    { src: "{{ asset('images/bins2.jpg') }}", label: 'Segregated bins' },
+    { src: "{{ asset('images/mrf2.jpg') }}", label: 'MRF processing' },
+    { src: "{{ asset('images/gcomm.jpg') }}", label: 'Green community' },
+    { src: "{{ asset('images/bins3.jpg') }}", label: 'Color-coded waste' },
+    { src: "{{ asset('images/gcomm2.png') }}", label: 'Community drive' },
+    { src: "{{ asset('images/sms2.png') }}", label: 'App notification' },
+    // Add more rows here:
+    // { src: "{{ asset('images/gallery_9.jpg') }}", label: 'Your label' },
 ];
 const track = document.getElementById('galleryTrack');
 [...galleryPhotos, ...galleryPhotos].forEach(p => {
@@ -725,4 +743,4 @@ const track = document.getElementById('galleryTrack');
 });
 </script>
 </body>
-</html>
+</html> 
