@@ -7,6 +7,9 @@ use App\Models\CollectionSession;
 use App\Models\SessionPoint;
 use App\Models\GarbagePoint;
 use App\Models\Barangay;
+use App\Models\Truck;
+use App\Models\CollectionPoint;
+use App\Models\TruckFullEvent;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -18,6 +21,10 @@ class CollectionSessionController extends Controller
     public function activeSession()
     {
         $user = Auth::user();
+        $barangayId = $user->barangay_id ?? Barangay::first()->id;
+
+        // Auto-seed trucks if none exist
+        $this->ensureTrucksExist($barangayId);
         
         // Find if there is an active session
         $activeSession = CollectionSession::where('collector_id', $user->id)
@@ -25,10 +32,13 @@ class CollectionSessionController extends Controller
             ->first();
 
         // Get barangay boundary info
-        $barangay = Barangay::find($user->barangay_id) ?? Barangay::first();
+        $barangay = Barangay::find($barangayId) ?? Barangay::first();
         $boundaryName = $barangay ? $barangay->name : 'Zamboanga City';
 
-        return view('dashboard.partials.collector.active-session', compact('activeSession', 'boundaryName'));
+        // Fetch active trucks
+        $trucks = Truck::where('barangay_id', $barangayId)->where('is_active', true)->get();
+
+        return view('dashboard.partials.collector.active-session', compact('activeSession', 'boundaryName', 'trucks'));
     }
 
     /**
@@ -37,9 +47,9 @@ class CollectionSessionController extends Controller
     public function startSession(Request $request)
     {
         $user = Auth::user();
+        $barangayId = $user->barangay_id ?? Barangay::first()->id;
         
         // Ensure we have some garbage points to route
-        $barangayId = $user->barangay_id ?? Barangay::first()->id;
         $this->ensureGarbagePointsExist($barangayId);
 
         // Find or create a pending session for today
@@ -205,6 +215,72 @@ class CollectionSessionController extends Controller
     }
 
     /**
+     * Show points logs (Collection History).
+     */
+    public function pointLogs()
+    {
+        $user = Auth::user();
+        
+        // Fetch session points completed (collected or skipped) by the current collector
+        $logs = SessionPoint::whereHas('session', function ($query) use ($user) {
+                $query->where('collector_id', $user->id);
+            })
+            ->whereIn('status', ['collected', 'skipped'])
+            ->with(['garbagePoint', 'session'])
+            ->orderByDesc('collected_at')
+            ->get();
+
+        return view('dashboard.partials.collector.point-logs', compact('logs'));
+    }
+
+    /**
+     * Show Log Truck Full page.
+     */
+    public function truckFull()
+    {
+        $user = Auth::user();
+        $barangayId = $user->barangay_id ?? Barangay::first()->id;
+
+        // Auto-seed collection points if none exist so the page has valid foreign keys
+        $this->ensureCollectionPointsExist($barangayId);
+
+        // Find active session
+        $activeSession = CollectionSession::where('collector_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        // Get collection points to display where they are at
+        $collectionPoints = CollectionPoint::where('barangay_id', $barangayId)
+            ->where('is_active', true)
+            ->get();
+
+        return view('dashboard.partials.collector.truck-full', compact('activeSession', 'collectionPoints'));
+    }
+
+    /**
+     * Post event: Log Truck Full.
+     */
+    public function logTruckFull(Request $request)
+    {
+        $request->validate([
+            'session_id' => 'required|uuid|exists:collection_sessions,id',
+            'collection_point_id' => 'required|uuid|exists:collection_points,id',
+            'estimated_load' => 'required|string',
+        ]);
+
+        TruckFullEvent::create([
+            'id' => (string) Str::uuid(),
+            'session_id' => $request->session_id,
+            'collection_point_id' => $request->collection_point_id,
+            'logged_at' => now(),
+            'dumping_site' => 'Calarian Landfill Terminal',
+            'resume_status' => 'pending',
+        ]);
+
+        return redirect()->back()->with('success', 'Truck capacity status broadcasted successfully! Re-routing navigation.');
+    }
+
+    /**
      * Private helper to seed default garbage points for Calarian / Baliwasan if none exist.
      */
     private function ensureGarbagePointsExist($barangayId)
@@ -261,6 +337,50 @@ class CollectionSessionController extends Controller
                     'is_active' => true,
                 ]);
             }
+        }
+    }
+
+    /**
+     * Private helper to seed default trucks if none exist.
+     */
+    private function ensureTrucksExist($barangayId)
+    {
+        if (Truck::where('barangay_id', $barangayId)->count() === 0) {
+            Truck::create([
+                'id' => (string) Str::uuid(),
+                'plate_number' => 'IX-7701',
+                'capacity_tons' => 5.0,
+                'barangay_id' => $barangayId,
+                'is_active' => true,
+            ]);
+            Truck::create([
+                'id' => (string) Str::uuid(),
+                'plate_number' => 'IX-4482',
+                'capacity_tons' => 8.0,
+                'barangay_id' => $barangayId,
+                'is_active' => true,
+            ]);
+        }
+    }
+
+    /**
+     * Private helper to seed default collection points if none exist.
+     */
+    private function ensureCollectionPointsExist($barangayId)
+    {
+        if (CollectionPoint::where('barangay_id', $barangayId)->count() === 0) {
+            $barangay = Barangay::find($barangayId) ?? Barangay::first();
+            $bName = $barangay ? $barangay->name : 'Calarian';
+
+            CollectionPoint::create([
+                'id' => (string) Str::uuid(),
+                'barangay_id' => $barangayId,
+                'name' => "Camino Nuevo Collection Hub ($bName)",
+                'latitude' => 6.9200,
+                'longitude' => 122.0300,
+                'address' => 'Main crossroads dropoff point',
+                'is_active' => true,
+            ]);
         }
     }
 }
