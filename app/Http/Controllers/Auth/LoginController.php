@@ -32,8 +32,8 @@ class LoginController extends Controller
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
 
-            // CHANGE THIS LINE: Redirect directly to the dashboard layout workspace
-            return redirect()->intended('/dashboard');
+            // CHANGE THIS LINE: Swap out generic dashboard path for the direct eco-points view route
+            return redirect()->intended('/dashboard/points');
         }
 
         throw ValidationException::withMessages([
