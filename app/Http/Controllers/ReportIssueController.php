@@ -3,58 +3,76 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use App\Models\ViolationReport;
 use App\Models\MissedCollectionReport;
 use Exception;
 
 class ReportIssueController extends Controller
 {
-    /**
-     * Submits a violation report for illegal garbage dumping.
-     *
-     * Validates the request, uploads the photo, sends it to Gemini AI
-     * for an initial verification analysis, and persists the report
-     * to the violation_reports table. The AI analysis is appended to
-     * the user's description so barangay admins can review both.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+    public function createViolationForm()
+    {
+        $reports = ViolationReport::where('reported_by', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->get();
+        $barangays = \App\Models\Barangay::orderBy('name', 'asc')->get();
+
+        return view('dashboard.partials.user.my-report-illegal-dumping', compact('reports', 'barangays'));
+    }
+
+    public function createMissedCollectionForm()
+    {
+        $user = Auth::user();
+
+        $reports = MissedCollectionReport::with('collectionPoint')
+            ->where('reported_by', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $collectionPoints = \App\Models\CollectionPoint::where('barangay_id', $user->barangay_id)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $activeSession = \App\Models\CollectionSession::whereHas('schedule', function ($query) use ($user) {
+            $query->where('barangay_id', $user->barangay_id);
+        })
+            ->whereIn('status', ['pending', 'active'])
+            ->latest('session_date')
+            ->first();
+
+        if (!$activeSession) {
+            $activeSession = \App\Models\CollectionSession::whereHas('schedule', function ($query) use ($user) {
+                $query->where('barangay_id', $user->barangay_id);
+            })
+                ->latest('session_date')
+                ->first();
+        }
+
+        return view('dashboard.partials.user.my-report-missed-pickup', compact('reports', 'collectionPoints', 'activeSession'));
+    }
+
     public function reportViolation(Request $request)
     {
-        /**
-         * Validate the incoming request payload.
-         */
         $request->validate([
-            'image'       => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
-            'user_id'     => 'required|uuid',
-            'barangay_id' => 'required|uuid',
-            'latitude'    => 'required|numeric',
-            'longitude'   => 'required|numeric',
-            'description' => 'nullable|string|max:2000',
+            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'barangay_id' => 'required|exists:barangays,id',
+            'address' => 'required|string|max:255',
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'description' => 'required|string|max:2000',
         ]);
 
         try {
-            $imageFile = $request->file('image');
+            $imageFile = $request->file('photo');
             $imagePath = $imageFile->getPathname();
-            $mimeType  = $imageFile->getMimeType();
+            $mimeType = $imageFile->getMimeType();
 
-            /**
-             * Save the photo to the public disk for permanent storage.
-             */
             $storedPath = $imageFile->store('reports/violations', 'public');
-            $photoUrl   = Storage::url($storedPath);
+            $photoUrl = Storage::url($storedPath);
 
-            /**
-             * Encode the image to Base64 for the Gemini API.
-             */
             $base64Image = base64_encode(file_get_contents($imagePath));
 
-            /**
-             * Send the image to Gemini AI for verification analysis.
-             */
             $aiAnalysis = $this->analyzeWithGemini(
                 $base64Image,
                 $mimeType,
@@ -66,90 +84,48 @@ class ReportIssueController extends Controller
                 . "Keep the response concise and factual."
             );
 
-            /**
-             * Combine the user's description with the AI verification.
-             */
             $userDescription = $request->description ?? '';
             $fullDescription = trim($userDescription . "\n\n[AI Verification]\n" . $aiAnalysis);
 
-            /**
-             * Persist the violation report to the database.
-             */
             $report = ViolationReport::create([
-                'reported_by' => $request->user_id,
+                'reported_by' => Auth::id(),
                 'barangay_id' => $request->barangay_id,
-                'latitude'    => $request->latitude,
-                'longitude'   => $request->longitude,
-                'photo_url'   => $photoUrl,
+                'address' => $request->address,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'photo_url' => $photoUrl,
                 'description' => $fullDescription,
-                'status'      => 'pending',
+                'status' => 'pending', // MUST BE LOWERCASE!
             ]);
 
-            /**
-             * Return the successful response to the client.
-             */
-            return response()->json([
-                'success' => true,
-                'data'    => [
-                    'id'           => $report->id,
-                    'photo_url'    => $photoUrl,
-                    'description'  => $fullDescription,
-                    'ai_analysis'  => $aiAnalysis,
-                    'status'       => 'pending',
-                ]
-            ]);
+            return redirect()->back()->with('success', 'Your violation report has been submitted successfully.');
 
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            return redirect()->back()
+                ->withErrors(['error' => 'Failed to submit report: ' . $e->getMessage()])
+                ->withInput();
         }
     }
 
-    /**
-     * Submits a missed collection report for an uncollected garbage pickup.
-     *
-     * Validates the request, uploads the photo, sends it to Gemini AI
-     * for an initial verification analysis, and persists the report
-     * to the missed_collection_reports table. The AI analysis is appended
-     * to the user's notes so barangay admins can review both.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function reportMissedCollection(Request $request)
     {
-        /**
-         * Validate the incoming request payload.
-         */
         $request->validate([
-            'image'               => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
-            'user_id'             => 'required|uuid',
-            'session_id'          => 'required|uuid',
+            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'session_id' => 'required|uuid',
             'collection_point_id' => 'required|uuid',
-            'notes'               => 'nullable|string|max:2000',
+            'notes' => 'nullable|string|max:2000',
         ]);
 
         try {
-            $imageFile = $request->file('image');
+            $imageFile = $request->file('photo');
             $imagePath = $imageFile->getPathname();
-            $mimeType  = $imageFile->getMimeType();
+            $mimeType = $imageFile->getMimeType();
 
-            /**
-             * Save the photo to the public disk for permanent storage.
-             */
             $storedPath = $imageFile->store('reports/missed', 'public');
-            $photoUrl   = Storage::url($storedPath);
+            $photoUrl = Storage::url($storedPath);
 
-            /**
-             * Encode the image to Base64 for the Gemini API.
-             */
             $base64Image = base64_encode(file_get_contents($imagePath));
 
-            /**
-             * Send the image to Gemini AI for verification analysis.
-             */
             $aiAnalysis = $this->analyzeWithGemini(
                 $base64Image,
                 $mimeType,
@@ -161,61 +137,30 @@ class ReportIssueController extends Controller
                 . "Keep the response concise and factual."
             );
 
-            /**
-             * Combine the user's notes with the AI verification.
-             */
             $userNotes = $request->notes ?? '';
             $fullNotes = trim($userNotes . "\n\n[AI Verification]\n" . $aiAnalysis);
 
-            /**
-             * Persist the missed collection report to the database.
-             */
             $report = MissedCollectionReport::create([
-                'session_id'          => $request->session_id,
+                'session_id' => $request->session_id,
                 'collection_point_id' => $request->collection_point_id,
-                'reported_by'         => $request->user_id,
-                'photo_url'           => $photoUrl,
-                'notes'               => $fullNotes,
-                'status'              => 'pending',
+                'reported_by' => Auth::id(),
+                'photo_url' => $photoUrl,
+                'notes' => $fullNotes,
+                'status' => 'pending', // MUST BE LOWERCASE!
             ]);
 
-            /**
-             * Return the successful response to the client.
-             */
-            return response()->json([
-                'success' => true,
-                'data'    => [
-                    'id'          => $report->id,
-                    'photo_url'   => $photoUrl,
-                    'notes'       => $fullNotes,
-                    'ai_analysis' => $aiAnalysis,
-                    'status'      => 'pending',
-                ]
-            ]);
+            return redirect()->back()->with('success', 'Your missed collection report has been submitted.');
 
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            return redirect()->back()
+                ->withErrors(['error' => 'Failed to submit report: ' . $e->getMessage()])
+                ->withInput();
         }
     }
 
-    /**
-     * Sends an image to the Gemini AI for analysis with a custom prompt.
-     *
-     * This is a shared helper method used by both report types to avoid
-     * duplicating the Gemini API call logic. If the API call fails, it
-     * returns a graceful fallback string instead of throwing an exception,
-     * so the report is still saved even if AI verification is unavailable.
-     *
-     * @param string $base64Image  The Base64 encoded image data.
-     * @param string $mimeType     The MIME type of the image (e.g., image/jpeg).
-     * @param string $prompt       The text prompt to send alongside the image.
-     * @return string              The AI's analysis text, or a fallback message.
-     */
     private function analyzeWithGemini(string $base64Image, string $mimeType, string $prompt): string
     {
+        // ... (Keep your Gemini logic exactly the same)
         try {
             $apiKey = config('services.gemini.key');
             $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={$apiKey}";
@@ -228,7 +173,7 @@ class ReportIssueController extends Controller
                             [
                                 'inline_data' => [
                                     'mime_type' => $mimeType,
-                                    'data'      => $base64Image
+                                    'data' => $base64Image
                                 ]
                             ]
                         ]
@@ -236,10 +181,6 @@ class ReportIssueController extends Controller
                 ],
             ];
 
-            /**
-             * Execute the HTTP POST request to the Gemini API.
-             * Note: withoutVerifying() bypasses local Windows SSL cURL errors (error 60).
-             */
             $response = Http::withoutVerifying()->post($url, $payload);
 
             if ($response->failed()) {
@@ -252,9 +193,6 @@ class ReportIssueController extends Controller
             return trim($aiText) ?: 'AI verification returned no analysis.';
 
         } catch (Exception $e) {
-            /**
-             * Gracefully handle AI failures so the report is still saved.
-             */
             return 'AI verification failed: ' . $e->getMessage();
         }
     }

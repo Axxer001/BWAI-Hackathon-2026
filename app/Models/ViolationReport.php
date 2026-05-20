@@ -24,7 +24,8 @@ class ViolationReport extends Model
      */
     protected $fillable = [
         'reported_by',
-        'barangay_id',
+        'barangay_id', 
+        'address',
         'latitude',
         'longitude',
         'photo_url',
