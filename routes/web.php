@@ -511,14 +511,10 @@ Route::post('/api/assess-waste', [WasteAssessmentController::class, 'assess']);
 Route::post('/api/reports/violation', [ReportIssueController::class, 'reportViolation']);
 Route::post('/api/reports/missed-collection', [ReportIssueController::class, 'reportMissedCollection']);
 
-// SMS Notifications
-Route::post('/api/notify/truck-approaching', [\App\Http\Controllers\SmsNotificationController::class, 'notifyApproaching']);
-Route::get('/api/notify/test', [\App\Http\Controllers\SmsNotificationController::class, 'sendTest']);
 
-
-// SMS Notifications
-Route::post('/api/notify/truck-approaching', [\App\Http\Controllers\SmsNotificationController::class, 'notifyApproaching']);
-Route::get('/api/notify/test', [\App\Http\Controllers\SmsNotificationController::class, 'sendTest']);
+// Email Notifications
+Route::post('/api/notify/truck-approaching', [\App\Http\Controllers\NotificationController::class, 'notifyApproaching']);
+Route::get('/api/notify/test', [\App\Http\Controllers\NotificationController::class, 'sendTest']);
 
 
 Route::middleware(['auth'])->group(function () {
