@@ -27,6 +27,21 @@ Route::group(['prefix' => 'auth', 'as' => 'auth.'], function () {
     
 });
 
+// Dashboard Routing Group (Protected by Auth)
+Route::middleware('auth')->group(function () {
+    
+    // Main Dashboard Home
+    Route::get('/dashboard', function () {
+        return view('dashboard.index'); 
+    })->name('dashboard');
+
+    // User: Eco-Points View
+    Route::get('/dashboard/points', function () {
+        // Points to: resources/views/dashboard/partials/user/my-eco-points.blade.php
+        return view('dashboard.partials.user.my-eco-points'); 
+    })->name('dashboard.points');
+
+});
 // API routes for map data (fetching and saving)
 Route::get('/api/garbage-points', [MapController::class, 'getPoints']);
 Route::post('/api/garbage-points', [MapController::class, 'storePoint']);
