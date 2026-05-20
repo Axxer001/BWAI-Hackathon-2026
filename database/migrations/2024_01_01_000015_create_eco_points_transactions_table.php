@@ -6,25 +6,20 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('resources', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
+        Schema::create('eco_points_transactions', function (Blueprint $table) {
+            $table->uuid('id')->primary();
             $table->uuid('user_id');
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->integer('points');
+            $table->string('reason');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('resources');
+        Schema::dropIfExists('eco_points_transactions');
     }
 };
