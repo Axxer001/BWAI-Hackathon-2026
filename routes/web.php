@@ -34,17 +34,20 @@ Route::group(['prefix' => 'auth', 'as' => 'auth.'], function () {
 Route::get('/dashboard/points-map', function () {
     $user = auth()->user();
 
-    // 1. Get user's assigned point, or fallback to the first point in their barangay
-    $collectionPoint = $user->collectionPoint ?? \App\Models\CollectionPoint::where('barangay_id', $user->barangay_id)->first();
+    // 1. Get user's active assigned point from the relationship
+    $collectionPoint = $user->garbagePoints()->wherePivot('is_active', true)->first();
 
-    // 2. Check if a garbage truck is currently on route in their barangay
-    // Find an ongoing session where the assigned collector belongs to the user's barangay
-    $activeSession = \App\Models\CollectionSession::whereHas('collector', function ($query) use ($user) {
-        $query->where('barangay_id', $user->barangay_id);
-    })
+    // 2. Get all active garbage points in their barangay for selection
+    $barangayPoints = \App\Models\GarbagePoint::where('barangay_id', $user->barangay_id)
+        ->where('is_active', true)
+        ->get();
+
+    // 3. Check if a garbage truck is currently on route in their barangay
+    $activeSession = \App\Models\CollectionSession::where('barangay_id', $user->barangay_id)
         ->where('status', 'ongoing')
         ->first();
-    // 3. Get today's collection schedule
+
+    // 4. Get today's collection schedule
     $today = strtolower(now()->format('l')); // e.g., 'monday'
     $todaySchedule = \App\Models\CollectionSchedule::where('barangay_id', $user->barangay_id)
         ->where('day_of_week', $today)
@@ -53,10 +56,40 @@ Route::get('/dashboard/points-map', function () {
 
     return view('dashboard.partials.user.my-collection-point', compact(
         'collectionPoint',
+        'barangayPoints',
         'activeSession',
         'todaySchedule'
     ));
 })->middleware('auth')->name('dashboard.points-map');
+
+Route::post('/dashboard/assign-collection-point', function (Illuminate\Http\Request $request) {
+    $request->validate([
+        'garbage_point_id' => 'required|uuid|exists:garbage_points,id',
+    ]);
+
+    $user = auth()->user();
+
+    // Deactivate existing assignments
+    \App\Models\UserPointAssignment::where('user_id', $user->id)
+        ->update(['is_active' => false]);
+
+    // Create or reactivate the selected point assignment
+    \App\Models\UserPointAssignment::updateOrCreate(
+        ['user_id' => $user->id, 'garbage_point_id' => $request->garbage_point_id],
+        ['is_active' => true, 'assigned_at' => now()]
+    );
+
+    return redirect()->back()->with('success', 'Collection point assigned successfully!');
+})->middleware('auth')->name('dashboard.assign-point');
+
+Route::post('/dashboard/change-collection-point', function () {
+    $user = auth()->user();
+
+    \App\Models\UserPointAssignment::where('user_id', $user->id)
+        ->update(['is_active' => false]);
+
+    return redirect()->back()->with('success', 'Please choose a new collection point from the map.');
+})->middleware('auth')->name('dashboard.change-point');
 
 // Dashboard Routing Group (Protected by Auth)
 Route::middleware('auth')->group(function () {

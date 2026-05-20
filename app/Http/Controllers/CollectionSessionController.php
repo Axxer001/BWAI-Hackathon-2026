@@ -14,6 +14,7 @@ use App\Models\TruckFullEvent;
 use App\Models\User;
 use App\Models\UserPointAssignment;
 use App\Mail\TruckApproachingMail;
+use App\Mail\WasteCollectedMail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -392,7 +393,6 @@ class CollectionSessionController extends Controller
      * Email all residents assigned to a garbage point when the truck arrives.
      */
     private function notifyResidentsAtPoint(string $garbagePointId): void
-
     {
         $point    = GarbagePoint::with('barangay')->find($garbagePointId);
         if (!$point) return;
@@ -408,13 +408,12 @@ class CollectionSessionController extends Controller
         foreach ($residents as $resident) {
             try {
                 Mail::to($resident->email, $resident->full_name)
-                    ->send(new TruckApproachingMail(
+                    ->send(new WasteCollectedMail(
                         residentName: $resident->full_name,
                         pointName:    $point->name,
-                        etaMinutes:   0,   // truck is already there
                         barangayName: $barangayName,
                     ));
-                Log::info("[TruckNotify] Arrival email sent to {$resident->email} — {$point->name}");
+                Log::info("[TruckNotify] Collection confirmation email sent to {$resident->email} — {$point->name}");
             } catch (\Exception $e) {
                 Log::error("[TruckNotify] Failed to email {$resident->email}: " . $e->getMessage());
             }
