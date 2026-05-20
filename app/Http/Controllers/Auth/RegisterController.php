@@ -38,12 +38,12 @@ class RegisterController extends Controller
 
         // 2. Instantiate and create record instance entries inside DB storage layers
         $user = User::create([
-            'id' => (string) Str::uuid(), // Generates user UUID string as structured in ERD profile
-            'full_name' => $request->full_name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password_hash' => Hash::make($request->password), // Secure hashing step
-            'role' => 'Resident', // Defaulting as assigned securely inline inside application logic
+            'id'          => (string) Str::uuid(),
+            'full_name'   => $request->full_name,
+            'email'       => $request->email,
+            'phone'       => $request->phone,
+            'password'    => Hash::make($request->password),
+            'role'        => 'user', // Changed from 'Resident' to match your migration
             'barangay_id' => $request->barangay_id,
         ]);
 

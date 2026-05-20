@@ -145,7 +145,7 @@
                 $fieldErr = 'ring-2 ring-red-300';
             @endphp
 
-            <form method="POST" action="{{ route('register') }}">
+            <form method="POST" action="{{ route('auth.register') }}">
                 @csrf
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
@@ -194,7 +194,7 @@
                             <select name="barangay_id" required
                                     class="{{ $field }} pr-10 cursor-pointer {{ $errors->has('barangay_id') ? $fieldErr : '' }}">
                                 <option value="" disabled {{ old('barangay_id') ? '' : 'selected' }}>Choose a barangay...</option>
-                                @foreach(App\Models\Barangay::all() ?? [] as $barangay)
+                                @foreach($barangays as $barangay)
                                     <option value="{{ $barangay->id }}" {{ old('barangay_id') == $barangay->id ? 'selected' : '' }}>
                                         {{ $barangay->name }} (District {{ $barangay->district }})
                                     </option>
@@ -227,7 +227,7 @@
 
                 </div>
 
-                <input type="hidden" name="role" value="Resident">
+                <input type="hidden" name="role" value="user">
 
                 {{-- Terms note --}}
                 <p class="text-[11px] text-slate-400 mt-5 leading-relaxed">
@@ -245,7 +245,7 @@
 
             <p class="text-center text-xs text-slate-400 mt-5">
                 Already have an account?
-                <a href="{{ route('login') }}" class="font-semibold text-green-600 hover:text-green-800 transition-colors">Sign in here</a>
+                <a href="{{ route('auth.login') }}" class="font-semibold text-green-600 hover:text-green-800 transition-colors">Sign in here</a>
             </p>
 
         </div>

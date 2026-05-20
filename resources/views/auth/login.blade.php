@@ -124,7 +124,7 @@
             <h1 class="text-2xl font-bold text-slate-900 mb-1">Login Account</h1>
             <p class="text-sm text-slate-400 mb-8 leading-relaxed">Sign in to your account to access your barangay collection schedule and notifications.</p>
 
-            <form method="POST" action="{{ route('login') }}" class="space-y-4">
+            <form method="POST" action="{{ route('auth.login') }}" class="space-y-4">
                 @csrf
 
                 {{-- Email --}}
@@ -188,7 +188,7 @@
 
             <p class="text-center text-xs text-slate-400 mt-6">
                 Don't have an account?
-                <a href="{{ route('register') }}" class="font-semibold text-green-600 hover:text-green-800 transition-colors">Register here</a>
+                <a href="{{ route('auth.register') }}" class="font-semibold text-green-600 hover:text-green-800 transition-colors">Register here</a>
             </p>
 
         </div>

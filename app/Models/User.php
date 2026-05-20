@@ -14,13 +14,13 @@ class User extends Authenticatable
     use HasFactory, HasUuids, Notifiable;
 
     protected $fillable = [
-        'name',
+        'id',
+        'full_name', // Crucial: Must be present!
         'email',
         'phone',
-        'password',
+        'password',  // Or 'password_hash' depending on your column choice
         'role',
         'barangay_id',
-        'is_active',
     ];
 
     protected $hidden = [
