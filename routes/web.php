@@ -26,6 +26,18 @@ Route::group(['prefix' => 'auth', 'as' => 'auth.'], function () {
     
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard.index'); // This will load index.blade.php which extends layout.blade.php
-})->middleware('auth')->name('dashboard');
+// Dashboard Routing Group (Protected by Auth)
+Route::middleware('auth')->group(function () {
+    
+    // Main Dashboard Home
+    Route::get('/dashboard', function () {
+        return view('dashboard.index'); 
+    })->name('dashboard');
+
+    // User: Eco-Points View
+    Route::get('/dashboard/points', function () {
+        // Points to: resources/views/dashboard/partials/user/my-eco-points.blade.php
+        return view('dashboard.partials.user.my-eco-points'); 
+    })->name('dashboard.points');
+
+});
