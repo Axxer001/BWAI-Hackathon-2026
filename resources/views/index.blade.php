@@ -4,14 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LimpioZambo · Smart Waste Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        syne: ['Syne', 'sans-serif'],
-                        inter: ['Inter', 'sans-serif'],
+                        poppins: ['Poppins', 'sans-serif'],
                     },
                     colors: {
                         green: {
@@ -45,12 +47,8 @@
             }
         }
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; }
-        .font-syne { font-family: 'Syne', sans-serif; }
+        body { font-family: 'Poppins', system-ui, sans-serif; }
 
         /* Reveal animation */
         .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s ease; }
@@ -63,8 +61,17 @@
         /* Photo crossfade */
         #mainImg, #sideImg { transition: opacity .35s; }
 
-        /* Gallery pause on hover */
-        .gallery-track { animation: scrollLeft 35s linear infinite; }
+        /* Gallery scroll */
+        @keyframes scrollLeft {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
+        .gallery-track {
+            display: flex;
+            gap: 1.25rem;
+            width: max-content;
+            animation: scrollLeft 35s linear infinite;
+        }
         .gallery-track:hover { animation-play-state: paused; }
 
         /* Prob card top bar */
@@ -96,13 +103,11 @@
         .ph-dot.active { background: white; width: 22px; border-radius: 100px; }
     </style>
 </head>
-<body class="bg-white text-slate-700 antialiased overflow-x-hidden">
+<body class="bg-white text-slate-700 antialiased overflow-x-hidden font-poppins">
 
-<!-- ═══════════════════════════════════════════ HEADER -->
 <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
     <div class="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between">
-        <!-- Logo -->
-        <a href="#" class="flex items-center gap-2 font-syne text-xl font-extrabold text-slate-900 no-underline">
+        <a href="#" class="flex items-center gap-2 font-poppins text-xl font-extrabold text-slate-900 no-underline">
             <div class="w-9 h-9 bg-green-600 rounded-[10px] flex items-center justify-center flex-shrink-0">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path d="M10 3L13 8.5H17.5L13.8 11.5L15.5 17L10 13.8L4.5 17L6.2 11.5L2.5 8.5H7L10 3Z" fill="white"/>
@@ -111,7 +116,6 @@
             Limpio<span class="text-green-600">Zambo</span>
         </a>
 
-        <!-- Nav links (hidden on mobile) -->
         <nav class="hidden md:flex items-center gap-8">
             <a href="#problem"  class="text-sm font-medium text-slate-500 hover:text-green-600 transition-colors">Context</a>
             <a href="#features" class="text-sm font-medium text-slate-500 hover:text-green-600 transition-colors">Features</a>
@@ -120,7 +124,6 @@
             <a href="#delay"    class="text-sm font-medium text-slate-500 hover:text-green-600 transition-colors">Delay Handling</a>
         </nav>
 
-        <!-- CTA buttons -->
         <div class="flex gap-3">
             <a href="{{ route('login') }}"
                class="text-sm font-semibold text-slate-700 border border-slate-200 px-4 py-2 rounded-lg hover:border-green-500 hover:text-green-700 transition-all">
@@ -134,18 +137,15 @@
     </div>
 </header>
 
-<!-- ═══════════════════════════════════════════ HERO -->
 <section class="min-h-screen grid md:grid-cols-2 gap-16 items-center max-w-7xl mx-auto px-6 pt-28 pb-12">
 
-    <!-- Copy -->
     <div class="relative z-10 reveal">
-        <!-- Eyebrow pill -->
         <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold tracking-widest uppercase bg-green-50 text-green-700 border border-green-200 mb-6">
             <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
             Zamboanga City, Philippines
         </div>
 
-        <h1 class="font-syne text-[clamp(2.6rem,4.5vw,4rem)] font-extrabold leading-[1.1] tracking-tight text-slate-900 mb-5">
+        <h1 class="font-poppins text-[clamp(2.6rem,4.5vw,4rem)] font-extrabold leading-[1.1] tracking-tight text-slate-900 mb-5">
             Garbage collection,<br>
             <em class="not-italic text-green-600">finally connected.</em>
         </h1>
@@ -174,10 +174,8 @@
         </div>
     </div>
 
-    <!-- Photo Stack -->
     <div class="relative h-[560px] reveal delay-2">
 
-        <!-- Floating notification pill -->
         <div class="absolute top-4 -left-3 z-20 bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-lg flex items-start gap-2.5 max-w-[210px] animate-slideUp">
             <div class="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center text-sm flex-shrink-0">📍</div>
             <div class="text-[11px] leading-[1.4]">
@@ -186,9 +184,8 @@
             </div>
         </div>
 
-        <!-- Main photo -->
         <div class="absolute top-0 right-0 w-[72%] h-[75%] z-[3] rounded-2xl overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,.12)] transition-all duration-[900ms]">
-            <img id="mainImg" src="https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=700&q=80" alt="Collection" class="w-full h-full object-cover block" />
+            <img id="mainImg" src="https://picsum.photos/seed/waste1/700/500" alt="Collection" class="w-full h-full object-cover block" />
             <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             <div class="absolute bottom-0 left-0 right-0 p-5 text-white text-xs font-medium tracking-wide">
                 <strong id="mainCaption" class="block text-[15px] font-bold mb-0.5">Barangay collection in progress</strong>
@@ -197,16 +194,14 @@
             <div id="photoDots" class="absolute top-4 right-4 z-10 flex gap-1.5"></div>
         </div>
 
-        <!-- Side photo -->
         <div class="absolute bottom-0 left-0 w-[48%] h-[52%] z-[4] rounded-2xl overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,.12)]">
-            <img id="sideImg" src="https://images.unsplash.com/photo-1611735341450-74d61e660ad2?w=500&q=80" alt="Bins" class="w-full h-full object-cover block" />
+            <img id="sideImg" src="https://picsum.photos/seed/side1/500/400" alt="Bins" class="w-full h-full object-cover block" />
             <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             <div class="absolute bottom-0 left-0 right-0 p-4 text-white text-[11px] font-semibold">
                 <strong id="sideCaption">Segregated bins ready</strong>
             </div>
         </div>
 
-        <!-- Live route card -->
         <div class="absolute bottom-7 right-3 z-10 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl p-4 w-[200px] shadow-[0_8px_24px_rgba(0,0,0,.10)]">
             <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Tuesday Route · Live</div>
             <div class="flex items-center gap-2.5 mb-2 text-sm">
@@ -233,39 +228,36 @@
     </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ STATS -->
 <div class="border-t border-b border-slate-200">
     <div class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center reveal">
         <div>
-            <div class="font-syne text-[2.4rem] font-extrabold text-green-600 leading-none mb-1.5 stat-num" data-target="98" data-suffix="%">0</div>
+            <div class="font-poppins text-[2.4rem] font-extrabold text-green-600 leading-none mb-1.5 stat-num" data-target="98" data-suffix="%">0</div>
             <div class="text-xs text-slate-500 font-medium">Barangays in Zamboanga City</div>
         </div>
         <div>
-            <div class="font-syne text-[2.4rem] font-extrabold text-green-600 leading-none mb-1.5 stat-num" data-target="58" data-suffix="%">0</div>
+            <div class="font-poppins text-[2.4rem] font-extrabold text-green-600 leading-none mb-1.5 stat-num" data-target="58" data-suffix="%">0</div>
             <div class="text-xs text-slate-500 font-medium">Non-biodegradable waste share</div>
         </div>
         <div>
-            <div class="font-syne text-[2.4rem] font-extrabold text-green-600 leading-none mb-1.5 stat-num" data-target="30" data-suffix="T/day">0</div>
+            <div class="font-poppins text-[2.4rem] font-extrabold text-green-600 leading-none mb-1.5 stat-num" data-target="30" data-suffix="T/day">0</div>
             <div class="text-xs text-slate-500 font-medium">Biodegradable processed daily</div>
         </div>
         <div>
-            <div class="font-syne text-[2.4rem] font-extrabold text-green-600 leading-none mb-1.5 stat-num" data-target="4" data-suffix=" roles">0</div>
+            <div class="font-poppins text-[2.4rem] font-extrabold text-green-600 leading-none mb-1.5 stat-num" data-target="4" data-suffix=" roles">0</div>
             <div class="text-xs text-slate-500 font-medium">Coordinated in one platform</div>
         </div>
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ GALLERY STRIP -->
 <div class="overflow-hidden py-14 bg-slate-50 border-t border-b border-slate-200">
-    <div id="galleryTrack" class="gallery-track flex gap-5 w-max"></div>
+    <div id="galleryTrack" class="gallery-track"></div>
 </div>
 
-<!-- ═══════════════════════════════════════════ PROBLEM / CONTEXT -->
 <section class="py-24 px-6" id="problem">
     <div class="max-w-5xl mx-auto">
         <div class="reveal">
             <p class="text-[11px] font-bold tracking-[.08em] uppercase text-green-600 mb-3">Why We Built This</p>
-            <h2 class="font-syne text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
+            <h2 class="font-poppins text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
                 Addressing real gaps in<br>Zamboanga's waste system
             </h2>
             <p class="text-base text-slate-500 max-w-xl leading-[1.75] mb-12">
@@ -273,21 +265,18 @@
             </p>
         </div>
         <div class="grid md:grid-cols-3 gap-6">
-            <!-- Card 1 -->
             <div class="relative bg-white border border-slate-200 rounded-2xl p-7 overflow-hidden prob-red reveal delay-1">
                 <div class="text-2xl mb-4">📋</div>
                 <h3 class="text-sm font-bold text-slate-900 mb-2">Ordinance Defines the Schedule</h3>
                 <p class="text-[13.5px] text-slate-500 leading-[1.65]">City Ordinance No. 500 already mandates time-and-type schedules per barangay. Residents must set out garbage 15 minutes before 8 AM — but no one gets notified in real time.</p>
                 <span class="inline-flex items-center gap-1 mt-4 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">City Ordinance No. 500</span>
             </div>
-            <!-- Card 2 -->
             <div class="relative bg-white border border-slate-200 rounded-2xl p-7 overflow-hidden prob-amber reveal delay-2">
                 <div class="text-2xl mb-4">🚛</div>
                 <h3 class="text-sm font-bold text-slate-900 mb-2">Trucks Break Down, People Don't Know</h3>
                 <p class="text-[13.5px] text-slate-500 leading-[1.65]">A documented, recurring issue in Zamboanga City: defective trucks delay or skip entire routes. Residents wait, garbage piles up, and violations get issued — even when residents did everything right.</p>
                 <span class="inline-flex items-center gap-1 mt-4 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">Documented failure mode</span>
             </div>
-            <!-- Card 3 -->
             <div class="relative bg-white border border-slate-200 rounded-2xl p-7 overflow-hidden prob-green reveal delay-3">
                 <div class="text-2xl mb-4">✅</div>
                 <h3 class="text-sm font-bold text-slate-900 mb-2">We Add an Intelligence Layer</h3>
@@ -298,7 +287,6 @@
     </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ FEATURES -->
 <section class="bg-slate-900 py-24 px-6 relative overflow-hidden" id="features">
     <div class="absolute inset-0 pointer-events-none"
          style="background: radial-gradient(ellipse at 20% 50%, rgba(34,197,94,.07) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(59,130,246,.05) 0%, transparent 60%)">
@@ -306,7 +294,7 @@
     <div class="max-w-5xl mx-auto relative z-10">
         <div class="reveal">
             <p class="text-[11px] font-bold tracking-[.08em] uppercase text-green-400 mb-3">Core Features</p>
-            <h2 class="font-syne text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-white leading-tight tracking-tight mb-4">
+            <h2 class="font-poppins text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-white leading-tight tracking-tight mb-4">
                 Everything the city's system<br>was missing
             </h2>
             <p class="text-base text-white/50 max-w-xl leading-[1.75] mb-14">
@@ -314,41 +302,39 @@
             </p>
         </div>
 
-        <!-- Grid with dividers -->
         <div class="reveal grid grid-cols-1 md:grid-cols-3 rounded-2xl overflow-hidden" style="background:rgba(255,255,255,.08); gap:1px;">
-            <!-- Each cell -->
             <div class="bg-slate-900 p-10 hover:bg-white/[.04] transition-colors">
-                <div class="font-syne text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">01</div>
+                <div class="font-poppins text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">01</div>
                 <div class="text-base font-bold text-white mb-2">Real-Time Notifications</div>
                 <div class="text-[13.5px] text-white/50 leading-[1.65]">SMS and email alerts fire automatically when a truck approaches a GPS collection point — giving residents the required 15-minute heads-up.</div>
                 <span class="inline-block mt-4 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">SMS · Email</span>
             </div>
             <div class="bg-slate-900 p-10 hover:bg-white/[.04] transition-colors">
-                <div class="font-syne text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">02</div>
+                <div class="font-poppins text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">02</div>
                 <div class="text-base font-bold text-white mb-2">GPS Collection Points</div>
                 <div class="text-[13.5px] text-white/50 leading-[1.65]">Households register to their nearest collection point. When the collector marks a point complete, the next point's residents are notified automatically.</div>
                 <span class="inline-block mt-4 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300">Live Map</span>
             </div>
             <div class="bg-slate-900 p-10 hover:bg-white/[.04] transition-colors">
-                <div class="font-syne text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">03</div>
+                <div class="font-poppins text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">03</div>
                 <div class="text-base font-bold text-white mb-2">Collector Route Sessions</div>
                 <div class="text-[13.5px] text-white/50 leading-[1.65]">Drivers start a session and follow the barangay-configured route. Each point is marked done with a timestamped GPS photo for accountability.</div>
                 <span class="inline-block mt-4 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300">Fleet Tracker</span>
             </div>
             <div class="bg-slate-900 p-10 hover:bg-white/[.04] transition-colors">
-                <div class="font-syne text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">04</div>
+                <div class="font-poppins text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">04</div>
                 <div class="text-base font-bold text-white mb-2">Delay Escalation Engine</div>
                 <div class="text-[13.5px] text-white/50 leading-[1.65]">When a truck doesn't reach a point within the scheduled window, the barangay officer is alerted and a rescheduling notice goes out to residents.</div>
                 <span class="inline-block mt-4 text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300">Auto-escalation</span>
             </div>
             <div class="bg-slate-900 p-10 hover:bg-white/[.04] transition-colors">
-                <div class="font-syne text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">05</div>
+                <div class="font-poppins text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">05</div>
                 <div class="text-base font-bold text-white mb-2">Barangay Analytics</div>
                 <div class="text-[13.5px] text-white/50 leading-[1.65]">Completion rates, delay trends, waste type volumes, and collector performance — all in one dashboard, aligned to the city's MRF reporting requirements.</div>
                 <span class="inline-block mt-4 text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">Dashboard</span>
             </div>
             <div class="bg-slate-900 p-10 hover:bg-white/[.04] transition-colors">
-                <div class="font-syne text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">06</div>
+                <div class="font-poppins text-[2rem] font-extrabold text-white/[.08] leading-none mb-6">06</div>
                 <div class="text-base font-bold text-white mb-2">AI Waste Classifier</div>
                 <div class="text-[13.5px] text-white/50 leading-[1.65]">Residents upload a photo of their garbage and get instant advice on proper segregation — plastic? biodegradable? hazardous? — before placing it at the collection point.</div>
                 <span class="inline-block mt-4 text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300">Powered by AI</span>
@@ -357,12 +343,11 @@
     </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ HOW IT WORKS -->
 <section class="py-24 px-6 bg-green-50">
     <div class="max-w-5xl mx-auto">
         <div class="reveal text-center">
             <p class="text-[11px] font-bold tracking-[.08em] uppercase text-green-600 mb-3">The Flow</p>
-            <h2 class="font-syne text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-slate-900 leading-tight tracking-tight">From schedule to collection</h2>
+            <h2 class="font-poppins text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-slate-900 leading-tight tracking-tight">From schedule to collection</h2>
         </div>
 
         <div class="mt-14 grid grid-cols-2 md:grid-cols-4 gap-6 relative flow-line">
@@ -390,13 +375,11 @@
     </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ AI SECTION -->
 <section class="py-24 px-6" id="ai">
     <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-20 items-center">
-        <!-- Copy -->
         <div class="reveal">
             <div class="inline-flex items-center gap-2 text-[11px] font-bold tracking-widest uppercase text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-4 py-1.5 mb-5">✦ AI-Powered</div>
-            <h2 class="font-syne text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
+            <h2 class="font-poppins text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
                 Snap a photo.<br>Know where it goes.
             </h2>
             <p class="text-base text-slate-500 leading-[1.75] mb-2">
@@ -427,7 +410,6 @@
             </div>
         </div>
 
-        <!-- Chat mockup -->
         <div class="reveal delay-2 rounded-2xl overflow-hidden bg-slate-900 border border-white/[.08]">
             <div class="flex items-center gap-3 px-5 py-3.5 bg-white/[.05] border-b border-white/[.07]">
                 <div class="w-2 h-2 rounded-full bg-green-500"></div>
@@ -456,16 +438,14 @@
     </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ ROLES -->
 <section class="py-24 px-6 bg-slate-50 border-t border-slate-200" id="ecosystem">
     <div class="max-w-5xl mx-auto">
         <div class="reveal">
             <p class="text-[11px] font-bold tracking-[.08em] uppercase text-green-600 mb-3">The Ecosystem</p>
-            <h2 class="font-syne text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">Four roles. One system.</h2>
+            <h2 class="font-poppins text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">Four roles. One system.</h2>
             <p class="text-base text-slate-500 max-w-xl leading-[1.75] mb-14">Every stakeholder in Zamboanga City's waste chain has a tailored experience — from the household to city hall.</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <!-- Resident -->
             <div class="bg-green-50 border border-green-200 rounded-2xl p-6 reveal delay-1">
                 <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl mb-5">🏠</div>
                 <div class="text-[11px] font-extrabold tracking-[.07em] uppercase text-green-700 mb-1">Resident</div>
@@ -478,7 +458,6 @@
                     <li class="text-xs text-slate-700 flex gap-1.5 items-start py-1"><span class="text-green-600 font-bold flex-shrink-0">›</span>Earn Eco-Points for compliance</li>
                 </ul>
             </div>
-            <!-- Collector -->
             <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 reveal delay-2">
                 <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl mb-5">🚛</div>
                 <div class="text-[11px] font-extrabold tracking-[.07em] uppercase text-blue-700 mb-1">Collector</div>
@@ -491,7 +470,6 @@
                     <li class="text-xs text-slate-700 flex gap-1.5 items-start py-1"><span class="text-blue-600 font-bold flex-shrink-0">›</span>Report delays with reason codes</li>
                 </ul>
             </div>
-            <!-- Barangay -->
             <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 reveal delay-3">
                 <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-2xl mb-5">🏛️</div>
                 <div class="text-[11px] font-extrabold tracking-[.07em] uppercase text-amber-800 mb-1">Barangay</div>
@@ -504,7 +482,6 @@
                     <li class="text-xs text-slate-700 flex gap-1.5 items-start py-1"><span class="text-amber-700 font-bold flex-shrink-0">›</span>Handle delay escalation alerts</li>
                 </ul>
             </div>
-            <!-- Admin -->
             <div class="bg-purple-50 border border-purple-200 rounded-2xl p-6 reveal delay-4">
                 <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-2xl mb-5">🏙️</div>
                 <div class="text-[11px] font-extrabold tracking-[.07em] uppercase text-purple-800 mb-1">City Admin</div>
@@ -521,10 +498,8 @@
     </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ DELAY HANDLING -->
 <section class="py-24 px-6 border-t border-slate-200" id="delay">
     <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-20 items-center">
-        <!-- Mockup -->
         <div class="reveal bg-white border border-slate-200 rounded-[18px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,.06)]">
             <div class="flex gap-3 items-start bg-amber-50 border-b border-amber-200 px-5 py-4">
                 <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 flex-shrink-0 mt-0.5">⚠ Delay</span>
@@ -558,10 +533,9 @@
             </div>
         </div>
 
-        <!-- Copy -->
         <div class="reveal delay-2">
             <p class="text-[11px] font-bold tracking-[.08em] uppercase text-green-600 mb-3">Delay Handling</p>
-            <h3 class="font-syne text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
+            <h3 class="font-poppins text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
                 When trucks can't follow the schedule, we handle it gracefully.
             </h3>
             <p class="text-sm text-slate-500 leading-[1.75] mb-5">
@@ -589,12 +563,11 @@
     </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ ORDINANCE CALLOUT -->
 <div class="bg-blue-800 py-16 px-6">
     <div class="max-w-5xl mx-auto flex gap-10 items-start">
         <div class="w-16 h-16 flex-shrink-0 bg-white/10 border border-white/15 rounded-2xl flex items-center justify-center text-3xl">📜</div>
         <div>
-            <h3 class="font-syne text-lg font-extrabold text-white mb-2">Built on Zamboanga City's Legal Framework</h3>
+            <h3 class="font-poppins text-lg font-extrabold text-white mb-2">Built on Zamboanga City's Legal Framework</h3>
             <p class="text-sm text-white/65 leading-[1.7] mb-4">LimpioZambo is designed in full compliance with the city's existing solid waste management laws. We digitize and enforce what's already mandated — we don't reinvent it.</p>
             <div class="flex flex-wrap gap-2">
                 <span class="text-xs font-bold px-3 py-1 rounded-full bg-white/10 text-white/85 border border-white/15">City Ordinance No. 500 — Sanitary Code</span>
@@ -607,12 +580,11 @@
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ FOOTER -->
 <footer class="bg-slate-900 text-white/60 pt-16 pb-8 px-6">
     <div class="max-w-5xl mx-auto">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
             <div class="col-span-2 md:col-span-1">
-                <div class="font-syne text-xl font-extrabold text-white mb-2">Limpio<span class="text-green-400">Zambo</span></div>
+                <div class="font-poppins text-xl font-extrabold text-white mb-2">Limpio<span class="text-green-400">Zambo</span></div>
                 <p class="text-xs text-white/40 leading-[1.65]">Empowering Zamboanga City with smart, data-driven waste management — aligned with city ordinances and built for real operational conditions.</p>
             </div>
             <div>
@@ -644,12 +616,11 @@
         </div>
         <div class="pt-6 border-t border-white/[.08] flex justify-between items-center flex-wrap gap-4 text-xs">
             <span>&copy; <script>document.write(new Date().getFullYear())</script> LimpioZambo · Zamboanga City</span>
-            <span class="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/15 text-green-400 border border-green-500/25 font-bold">🏆 Hackathon Submission 2025</span>
+            <span class="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/15 text-green-400 border border-green-500/25 font-bold">🏆 Hackathon Submission 2026</span>
         </div>
     </div>
 </footer>
 
-<!-- ═══════════════════════════════════════════ SCRIPTS -->
 <script>
 // Sticky header
 window.addEventListener('scroll', () => {
@@ -691,14 +662,14 @@ if (statsEl) countObs.observe(statsEl.closest('div').parentElement);
 
 // Hero photo slideshow
 const photos = [
-    { main: { src: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=700&q=80', cap: 'Barangay collection in progress', sub: 'Zamboanga City · Zone 2' },
-      side: { src: 'https://images.unsplash.com/photo-1611735341450-74d61e660ad2?w=500&q=80', cap: 'Segregated bins ready' } },
-    { main: { src: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=700&q=80', cap: 'Collector marking GPS point', sub: 'Route Session Active' },
-      side: { src: 'https://images.unsplash.com/photo-1604187351574-c75ca79f5807?w=500&q=80', cap: 'Community waste drive' } },
-    { main: { src: 'https://images.unsplash.com/photo-1591193686104-fddba7f2b732?w=700&q=80', cap: 'Color-coded waste segregation', sub: 'City Ordinance No. 500 compliant' },
-      side: { src: 'https://images.unsplash.com/photo-1567789884554-0b844b597180?w=500&q=80', cap: 'MRF facility processing' } },
-    { main: { src: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=700&q=80', cap: 'Resident app notification', sub: 'SMS alert before collection' },
-      side: { src: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=500&q=80', cap: 'Green community initiative' } },
+    { main: { src: 'https://picsum.photos/seed/waste1/700/500', cap: 'Barangay collection in progress', sub: 'Zamboanga City · Zone 2' },
+      side: { src: 'https://picsum.photos/seed/side1/500/400', cap: 'Segregated bins ready' } },
+    { main: { src: 'https://picsum.photos/seed/waste2/700/500', cap: 'Collector marking GPS point', sub: 'Route Session Active' },
+      side: { src: 'https://picsum.photos/seed/side2/500/400', cap: 'Community waste drive' } },
+    { main: { src: 'https://picsum.photos/seed/waste3/700/500', cap: 'Color-coded waste segregation', sub: 'City Ordinance No. 500 compliant' },
+      side: { src: 'https://picsum.photos/seed/side3/500/400', cap: 'MRF facility processing' } },
+    { main: { src: 'https://picsum.photos/seed/waste4/700/500', cap: 'Resident app notification', sub: 'SMS alert before collection' },
+      side: { src: 'https://picsum.photos/seed/side4/500/400', cap: 'Green community initiative' } },
 ];
 let photoIdx = 0;
 const mainImg = document.getElementById('mainImg');
@@ -733,14 +704,14 @@ setInterval(() => goToPhoto((photoIdx + 1) % photos.length), 4000);
 
 // Gallery strip
 const galleryPhotos = [
-    { src: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&q=75', label: 'Collection in progress' },
-    { src: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=75', label: 'GPS point logged' },
-    { src: 'https://images.unsplash.com/photo-1611735341450-74d61e660ad2?w=400&q=75', label: 'Segregated bins' },
-    { src: 'https://images.unsplash.com/photo-1567789884554-0b844b597180?w=400&q=75', label: 'MRF processing' },
-    { src: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=75', label: 'Green community' },
-    { src: 'https://images.unsplash.com/photo-1591193686104-fddba7f2b732?w=400&q=75', label: 'Color-coded waste' },
-    { src: 'https://images.unsplash.com/photo-1604187351574-c75ca79f5807?w=400&q=75', label: 'Community drive' },
-    { src: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&q=75', label: 'App notification' },
+    { src: 'https://picsum.photos/seed/g1/400/260', label: 'Collection in progress' },
+    { src: 'https://picsum.photos/seed/g2/400/260', label: 'GPS point logged' },
+    { src: 'https://picsum.photos/seed/g3/400/260', label: 'Segregated bins' },
+    { src: 'https://picsum.photos/seed/g4/400/260', label: 'MRF processing' },
+    { src: 'https://picsum.photos/seed/g5/400/260', label: 'Green community' },
+    { src: 'https://picsum.photos/seed/g6/400/260', label: 'Color-coded waste' },
+    { src: 'https://picsum.photos/seed/g7/400/260', label: 'Community drive' },
+    { src: 'https://picsum.photos/seed/g8/400/260', label: 'App notification' },
 ];
 const track = document.getElementById('galleryTrack');
 [...galleryPhotos, ...galleryPhotos].forEach(p => {
