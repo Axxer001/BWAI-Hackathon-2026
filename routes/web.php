@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\WasteAssessmentController;
 use App\Http\Controllers\ReportIssueController;
+use App\Http\Controllers\CollectionSessionController;
 
 // Landing Page
 Route::get('/', function () {
@@ -110,21 +111,21 @@ Route::get('/dashboard', function () {
 
 // ─── COLLECTOR ROUTES ────────────────────────────────────────────────
 
-    Route::get('/dashboard/active-session', function () {
-        return view('dashboard.partials.collector.active-session'); 
-    })->name('dashboard.active-session');
+    Route::get('/dashboard/active-session', [CollectionSessionController::class, 'activeSession'])->middleware('auth')->name('dashboard.active-session');
+    Route::post('/dashboard/active-session/start', [CollectionSessionController::class, 'startSession'])->middleware('auth')->name('dashboard.start-session');
 
-    Route::get('/dashboard/route-map', function () {
-        return view('dashboard.partials.collector.route-map'); 
-    })->name('dashboard.route-map');
+    Route::get('/dashboard/route-map', [CollectionSessionController::class, 'routeMap'])->middleware('auth')->name('dashboard.route-map');
+    Route::post('/dashboard/route-map/{id}/start', [CollectionSessionController::class, 'startRoute'])->middleware('auth')->name('dashboard.start-route');
+    Route::post('/dashboard/route-map/{id}/complete', [CollectionSessionController::class, 'completeRoute'])->middleware('auth')->name('dashboard.complete-route');
+    Route::post('/dashboard/route-map/{sessionId}/point/{pointId}/status', [CollectionSessionController::class, 'updatePointStatus'])->middleware('auth')->name('dashboard.update-point-status');
 
     Route::get('/dashboard/truck-full', function () {
         return view('dashboard.partials.collector.truck-full'); 
-    })->name('dashboard.truck-full');
+    })->middleware('auth')->name('dashboard.truck-full');
 
     Route::get('/dashboard/point-logs', function () {
         return view('dashboard.partials.collector.point-logs'); 
-    })->name('dashboard.point-logs');
+    })->middleware('auth')->name('dashboard.point-logs');
 
 
     // Gemini api waste assessment route

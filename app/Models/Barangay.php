@@ -13,8 +13,10 @@ class Barangay extends Model
 
     protected $fillable = [
         'name',
+        'district',
         'city',
         'contact_email',
+        'managed_by',
         'is_active',
     ];
 
