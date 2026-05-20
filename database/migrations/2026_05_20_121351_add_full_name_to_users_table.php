@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        if (Schema::hasColumn('users', 'full_name')) {
+            return; // Already applied
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $table->string('full_name')->nullable()->after('name');
         });

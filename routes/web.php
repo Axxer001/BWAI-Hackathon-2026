@@ -43,19 +43,21 @@ Route::middleware('auth')->group(function () {
 
     // 💡 Add the rest of your user routes below as you build the views:
     
-    /*
+    
     Route::get('/dashboard/ai-scanner', function () {
-        return view('dashboard.partials.user.ai-scanner'); 
+        return view('dashboard.partials.user.my-ai-waste-scanner'); 
     });
 
+    
     Route::get('/dashboard/report-missed', function () {
-        return view('dashboard.partials.user.report-missed'); 
+        return view('dashboard.partials.user.my-report-missed-pickup'); 
     });
 
+    
     Route::get('/dashboard/report-violation', function () {
-        return view('dashboard.partials.user.report-violation'); 
+        return view('dashboard.partials.user.my-report-illegal-dumping'); 
     });
-    */
+    
 
 });
 // API routes for map data (fetching and saving)
