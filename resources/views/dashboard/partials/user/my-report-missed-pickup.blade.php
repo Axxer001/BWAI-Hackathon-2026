@@ -185,15 +185,26 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl border border-slate-200 flex-1 animate-slideUp" style="animation-delay: 0.2s;">
-                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            {{-- My Reports History (Now Height Constrained with View All) --}}
+            <div class="bg-white rounded-2xl border border-slate-200 flex flex-col overflow-hidden animate-slideUp" style="animation-delay: 0.2s;">
+                
+                {{-- Header --}}
+                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-sm font-bold text-slate-900">My Reports</h3>
+                        <h3 class="text-sm font-bold text-slate-900">My Recent Reports</h3>
                         <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">{{ $reports->count() }}</span>
                     </div>
+
+                    @if($reports->count() > 0)
+                        <button type="button" id="openModalBtn"
+                            class="text-[11px] font-bold text-red-500 hover:text-red-600 transition-colors uppercase tracking-wide flex items-center gap-1">
+                            View All &rarr;
+                        </button>
+                    @endif
                 </div>
 
-                <div class="divide-y divide-slate-100">
+                {{-- Scrollable Body --}}
+                <div class="divide-y divide-slate-100 overflow-y-auto max-h-[320px]" style="scrollbar-width: thin;">
                     @forelse($reports as $report)
                         @php
                             $status = strtolower($report->status);
@@ -208,13 +219,18 @@
                             }
                         @endphp
 
-                        <a href="{{ route('reports.missed.show', $report->id) }}" class="group block px-5 py-4 hover:bg-slate-50 transition-colors rounded-xl no-underline">
+                        <a href="{{ route('reports.missed.show', $report->id) }}" class="group block px-5 py-4 hover:bg-slate-50 transition-colors no-underline">
                             <div class="flex items-start justify-between gap-3 mb-1">
-                                <p class="text-sm font-semibold text-slate-800 truncate">{{ $report->collectionPoint->name ?? 'Unknown collection point' }}</p>
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 {{ $badgeClass }}">{{ ucfirst($report->status) }}</span>
+                                <p class="text-sm font-semibold text-slate-800 truncate group-hover:text-red-600 transition-colors">{{ $report->collectionPoint->name ?? 'Unknown collection point' }}</p>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md border flex-shrink-0 {{ $badgeClass }}">{{ ucfirst($report->status) }}</span>
                             </div>
-                            <p class="text-[11px] text-slate-400 mb-1">{{ $report->created_at->diffForHumans() }}</p>
-                            <p class="text-xs text-slate-500 leading-relaxed">{{ \Illuminate\Support\Str::limit($report->notes ?? 'No notes provided.', 110) }}</p>
+                            <p class="text-[11px] text-slate-400 mb-1 flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {{ $report->created_at->diffForHumans() }}
+                            </p>
+                            <p class="text-xs text-slate-500 leading-relaxed truncate">{{ \Illuminate\Support\Str::limit($report->notes ?? 'No notes provided.', 110) }}</p>
                         </a>
                     @empty
                         <div class="px-5 py-10 flex flex-col items-center justify-center text-center">
@@ -232,21 +248,175 @@
         </div>
     </div>
 
+    {{-- ── ALL REPORTS MODAL ── --}}
+    <div id="reportsModal" class="fixed inset-0 z-[9999] hidden">
+        <div id="modalBackdrop" class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm transition-opacity"></div>
+        <div class="flex items-center justify-center min-h-screen px-4 py-10 text-center sm:p-0 pointer-events-none">
+            <div class="relative bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-4xl max-h-[85vh] overflow-hidden pointer-events-auto transform transition-all">
+                
+                {{-- Modal Header --}}
+                <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 flex-shrink-0">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 text-left">All Missed Pickups</h3>
+                        <p class="text-xs text-slate-500">Track the status of your reported missed collections</p>
+                    </div>
+                    <button type="button" id="closeModalBtn" class="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-200 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Tabs --}}
+                <div class="px-6 border-b border-slate-200 flex gap-8 overflow-x-auto no-scrollbar flex-shrink-0 bg-white">
+                    <button class="tab-btn active text-sm font-bold py-4 border-b-2 border-red-500 text-red-600 transition-colors whitespace-nowrap" data-target-status="all">
+                        All Reports
+                    </button>
+                    <button class="tab-btn text-sm font-semibold py-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors whitespace-nowrap" data-target-status="pending">
+                        Pending
+                    </button>
+                    <button class="tab-btn text-sm font-semibold py-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors whitespace-nowrap" data-target-status="resolved">
+                        Resolved
+                    </button>
+                    <button class="tab-btn text-sm font-semibold py-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors whitespace-nowrap" data-target-status="invalid">
+                        Invalid
+                    </button>
+                </div>
+
+                {{-- Modal Body --}}
+                <div class="flex-1 overflow-y-auto p-6 bg-slate-50/50" style="scrollbar-width: thin;">
+                    <div class="space-y-4 text-left">
+                        @foreach($reports as $report)
+                            @php
+                                $status = strtolower($report->status);
+                                $badgeClass = 'bg-slate-100 text-slate-500 border-slate-200';
+                                if ($status === 'pending') $badgeClass = 'bg-amber-50 text-amber-600 border-amber-200';
+                                elseif ($status === 'resolved') $badgeClass = 'bg-green-50 text-green-600 border-green-200';
+                                elseif ($status === 'invalid') $badgeClass = 'bg-red-50 text-red-600 border-red-200';
+                            @endphp
+
+                            <a href="{{ route('reports.missed.show', $report->id) }}" 
+                                class="report-item bg-white p-5 rounded-xl border border-slate-200 flex flex-col md:flex-row gap-5 justify-between shadow-sm hover:shadow-md transition-shadow no-underline"
+                                data-status="{{ $status }}">
+                                
+                                <div class="flex-1">
+                                    <div class="flex flex-wrap items-center gap-3 mb-2">
+                                        <span class="text-[11px] font-bold px-2.5 py-1 rounded-md border {{ $badgeClass }} tracking-wide uppercase">
+                                            {{ ucfirst($report->status) }}
+                                        </span>
+                                        <span class="text-xs text-slate-400 font-medium flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            {{ $report->created_at->format('M d, Y \a\t h:i A') }}
+                                        </span>
+                                    </div>
+                                    <h4 class="text-base font-bold text-slate-800 mb-1.5">{{ $report->collectionPoint->name ?? 'Unknown collection point' }}</h4>
+                                    <p class="text-sm text-slate-600 leading-relaxed">{{ $report->notes ?? 'No additional notes provided.' }}</p>
+                                </div>
+
+                                @if($report->photo_url)
+                                    <div class="md:w-32 w-full h-32 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 relative group">
+                                        <img src="{{ asset($report->photo_url) }}" alt="Evidence" class="w-full h-full object-cover transition-transform group-hover:scale-105">
+                                        <div class="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-xl"></div>
+                                    </div>
+                                @endif
+                            </a>
+                        @endforeach
+
+                        {{-- Empty State --}}
+                        <div id="modal-empty-state" class="hidden py-16 flex flex-col items-center justify-center">
+                            <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <p class="text-base font-bold text-slate-700">No reports found</p>
+                            <p class="text-sm text-slate-500 mt-1">There are no reports matching this specific status.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // --- 1. Photo preview Logic ---
         const photoInput = document.getElementById('photoInput');
         const photoPreview = document.getElementById('photoPreviewWrap');
         const photoDefault = document.getElementById('photoDropDefault');
         const photoImg = document.getElementById('photoPreviewImg');
         const photoName = document.getElementById('photoPreviewName');
 
-        photoInput.addEventListener('change', () => {
-            const file = photoInput.files[0];
-            if (!file) return;
-            photoImg.src = URL.createObjectURL(file);
-            photoName.textContent = file.name;
-            photoPreview.classList.remove('hidden');
-            photoDefault.classList.add('hidden');
+        if (photoInput) {
+            photoInput.addEventListener('change', () => {
+                const file = photoInput.files[0];
+                if (!file) return;
+                photoImg.src = URL.createObjectURL(file);
+                photoName.textContent = file.name;
+                photoPreview.classList.remove('hidden');
+                photoDefault.classList.add('hidden');
+            });
+        }
+
+        // --- 2. Modal & JS-Based Tab Filtering Logic ---
+        const modal = document.getElementById('reportsModal');
+        const modalBackdrop = document.getElementById('modalBackdrop');
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const reportItems = document.querySelectorAll('.report-item');
+        const emptyState = document.getElementById('modal-empty-state');
+
+        if (modal) document.body.appendChild(modal); // Detach from stacking context
+
+        function openModal() {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+        if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+        if (modalBackdrop) modalBackdrop.addEventListener('click', closeModal);
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => {
+                    b.classList.remove('border-red-500', 'text-red-600', 'active', 'font-bold');
+                    b.classList.add('border-transparent', 'text-slate-500', 'font-semibold');
+                });
+
+                btn.classList.add('border-red-500', 'text-red-600', 'active', 'font-bold');
+                btn.classList.remove('border-transparent', 'text-slate-500', 'font-semibold');
+
+                const targetStatus = btn.getAttribute('data-target-status');
+                let visibleCount = 0;
+
+                reportItems.forEach(item => {
+                    const itemStatus = item.getAttribute('data-status');
+                    if (targetStatus === 'all' || itemStatus === targetStatus) {
+                        item.classList.remove('hidden');
+                        item.classList.add('flex');
+                        visibleCount++;
+                    } else {
+                        item.classList.add('hidden');
+                        item.classList.remove('flex');
+                    }
+                });
+
+                if (visibleCount === 0) {
+                    emptyState.classList.remove('hidden');
+                    emptyState.classList.add('flex');
+                } else {
+                    emptyState.classList.add('hidden');
+                    emptyState.classList.remove('flex');
+                }
+            });
         });
     </script>
-
 @endsection

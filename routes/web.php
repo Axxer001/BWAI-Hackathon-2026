@@ -31,6 +31,33 @@ Route::group(['prefix' => 'auth', 'as' => 'auth.'], function () {
 
 });
 
+Route::get('/dashboard/points-map', function () {
+    $user = auth()->user();
+
+    // 1. Get user's assigned point, or fallback to the first point in their barangay
+    $collectionPoint = $user->collectionPoint ?? \App\Models\CollectionPoint::where('barangay_id', $user->barangay_id)->first();
+
+    // 2. Check if a garbage truck is currently on route in their barangay
+    // Find an ongoing session where the assigned collector belongs to the user's barangay
+    $activeSession = \App\Models\CollectionSession::whereHas('collector', function ($query) use ($user) {
+        $query->where('barangay_id', $user->barangay_id);
+    })
+        ->where('status', 'ongoing')
+        ->first();
+    // 3. Get today's collection schedule
+    $today = strtolower(now()->format('l')); // e.g., 'monday'
+    $todaySchedule = \App\Models\CollectionSchedule::where('barangay_id', $user->barangay_id)
+        ->where('day_of_week', $today)
+        ->where('is_active', true)
+        ->first();
+
+    return view('dashboard.partials.user.my-collection-point', compact(
+        'collectionPoint',
+        'activeSession',
+        'todaySchedule'
+    ));
+})->middleware('auth')->name('dashboard.points-map');
+
 // Dashboard Routing Group (Protected by Auth)
 Route::middleware('auth')->group(function () {
 
@@ -40,9 +67,6 @@ Route::middleware('auth')->group(function () {
         return view('dashboard.partials.user.my-eco-points');
     })->name('dashboard.points');
 
-    Route::get('/dashboard/points-map', function () {
-        return view('dashboard.partials.user.my-collection-point');
-    })->name('dashboard.points-map');
 
     // 💡 Add the rest of your user routes below as you build the views:
 

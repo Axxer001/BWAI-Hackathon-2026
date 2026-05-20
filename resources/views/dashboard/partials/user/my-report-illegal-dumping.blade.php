@@ -278,27 +278,24 @@
                             }
                         @endphp
 
-                        <div class="px-5 py-4 hover:bg-slate-50 transition-colors">
+                        <a href="{{ route('reports.violation.show', $report->id) }}" class="block px-5 py-4 hover:bg-slate-50 transition-colors no-underline group">
                             <div class="flex items-start justify-between gap-3 mb-1">
-                                <p class="text-sm font-semibold text-slate-800 leading-tight truncate">
+                                <p class="text-sm font-semibold text-slate-800 leading-tight truncate group-hover:text-orange-600 transition-colors">
                                     {{ $report->address }}
                                 </p>
-                                <span
-                                    class="text-[10px] font-bold px-2 py-0.5 rounded-md border flex-shrink-0 {{ $badgeClass }}">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md border flex-shrink-0 {{ $badgeClass }}">
                                     {{ ucfirst($report->status) }}
                                 </span>
                             </div>
                             <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                <svg class="w-3.5 h-3.5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 {{ $report->created_at->diffForHumans() }}
                                 &bull;
                                 {{ $report->barangay->name ?? 'Zamboanga City' }}
                             </p>
-                        </div>
+                        </a>
                     @empty
                         <div class="px-5 py-10 flex flex-col items-center justify-center text-center">
                             <div class="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
@@ -456,7 +453,7 @@
                                             <div class="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-xl"></div>
                                         </div>
                                     @endif
-                            </div>
+                                </a>
                         @endforeach
 
                     {{-- Empty State (Hidden by default, toggled via JS) --}}
@@ -489,72 +486,78 @@
         const photoImg = document.getElementById('photoPreviewImg');
         const photoName = document.getElementById('photoPreviewName');
 
-        photoInput.addEventListener('change', () => {
-            const file = photoInput.files[0];
-            if (!file) return;
-            photoImg.src = URL.createObjectURL(file);
-            photoName.textContent = file.name;
-            photoPreview.classList.remove('hidden');
-            photoDefault.classList.add('hidden');
-        });
+        if (photoInput) {
+            photoInput.addEventListener('change', () => {
+                const file = photoInput.files[0];
+                if (!file) return;
+                photoImg.src = URL.createObjectURL(file);
+                photoName.textContent = file.name;
+                photoPreview.classList.remove('hidden');
+                photoDefault.classList.add('hidden');
+            });
+        }
 
         // --- 2. Interactive Map Logic ---
         const latInput = document.getElementById('latInput');
         const lngInput = document.getElementById('lngInput');
 
-        const defaultLat = parseFloat(latInput.value) || 6.9214;
-        const defaultLng = parseFloat(lngInput.value) || 122.0790;
+        if (latInput && lngInput) {
+            const defaultLat = parseFloat(latInput.value) || 6.9214;
+            const defaultLng = parseFloat(lngInput.value) || 122.0790;
 
-        const map = L.map('interactiveMap').setView([defaultLat, defaultLng], 14);
+            const map = L.map('interactiveMap').setView([defaultLat, defaultLng], 14);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
 
-        let marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+            let marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
 
-        function updateCoordinates(lat, lng) {
-            latInput.value = lat.toFixed(7);
-            lngInput.value = lng.toFixed(7);
-        }
-
-        marker.on('dragend', function () {
-            const pos = marker.getLatLng();
-            updateCoordinates(pos.lat, pos.lng);
-        });
-
-        map.on('click', function (e) {
-            marker.setLatLng(e.latlng);
-            updateCoordinates(e.latlng.lat, e.latlng.lng);
-        });
-
-        // --- 3. Get current GPS location button ---
-        document.getElementById('getLocationBtn').addEventListener('click', () => {
-            if (!navigator.geolocation) {
-                alert("Geolocation is not supported by your browser.");
-                return;
+            function updateCoordinates(lat, lng) {
+                latInput.value = lat.toFixed(7);
+                lngInput.value = lng.toFixed(7);
             }
 
-            const btn = document.getElementById('getLocationBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = 'Locating...';
-
-            navigator.geolocation.getCurrentPosition(pos => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-
-                const newLatLng = new L.LatLng(lat, lng);
-                marker.setLatLng(newLatLng);
-                map.setView(newLatLng, 17);
-                updateCoordinates(lat, lng);
-
-                btn.innerHTML = originalText;
-            }, () => {
-                alert("Unable to retrieve your location. Please check your browser permissions.");
-                btn.innerHTML = originalText;
+            marker.on('dragend', function () {
+                const pos = marker.getLatLng();
+                updateCoordinates(pos.lat, pos.lng);
             });
-        });
+
+            map.on('click', function (e) {
+                marker.setLatLng(e.latlng);
+                updateCoordinates(e.latlng.lat, e.latlng.lng);
+            });
+
+            // --- 3. Get current GPS location button ---
+            const getLocationBtn = document.getElementById('getLocationBtn');
+            if (getLocationBtn) {
+                getLocationBtn.addEventListener('click', () => {
+                    if (!navigator.geolocation) {
+                        alert("Geolocation is not supported by your browser.");
+                        return;
+                    }
+
+                    const originalText = getLocationBtn.innerHTML;
+                    getLocationBtn.innerHTML = 'Locating...';
+
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+
+                        const newLatLng = new L.LatLng(lat, lng);
+                        marker.setLatLng(newLatLng);
+                        map.setView(newLatLng, 17);
+                        updateCoordinates(lat, lng);
+
+                        getLocationBtn.innerHTML = originalText;
+                    }, () => {
+                        alert("Unable to retrieve your location. Please check your browser permissions.");
+                        getLocationBtn.innerHTML = originalText;
+                    });
+                });
+            }
+        }
 
         // --- 4. Modal & JS-Based Tab Filtering Logic ---
         const modal = document.getElementById('reportsModal');
