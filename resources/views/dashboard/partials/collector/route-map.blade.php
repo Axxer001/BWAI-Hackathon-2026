@@ -20,7 +20,7 @@
                     START ROUTE NAVIGATION
                 </button>
             </form>
-        @elseif($session->status === 'active')
+        @elseif($session->status === 'ongoing')
             <form action="{{ route('dashboard.complete-route', $session->id) }}" method="POST">
                 @csrf
                 <button type="submit" class="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 flex items-center gap-2">
@@ -44,7 +44,7 @@
         <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
             <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full {{ $session->status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-amber-500' }}"></span> 
+                    <span class="w-2.5 h-2.5 rounded-full {{ $session->status === 'ongoing' ? 'bg-green-500 animate-pulse' : 'bg-amber-500' }}"></span> 
                     Status: {{ ucfirst($session->status) }} — Zone Coverage
                 </span>
                 <span class="text-xs text-slate-400 font-medium">Auto-connecting checkpoints in route order</span>
@@ -60,7 +60,7 @@
 
             <div class="space-y-4 overflow-y-auto max-h-[400px] flex-1 pr-1">
                 @forelse($sessionPoints as $point)
-                    <div class="p-4 rounded-xl border {{ $point->isCollected() ? 'bg-emerald-50/50 border-emerald-100' : ($point->isSkipped() ? 'bg-rose-50/50 border-rose-100' : 'bg-slate-50/50 border-slate-100') }} transition-all flex flex-col gap-3">
+                    <div class="point-card p-4 rounded-xl border {{ $point->isCollected() ? 'bg-emerald-50/50 border-emerald-100' : ($point->isSkipped() ? 'bg-rose-50/50 border-rose-100' : 'bg-slate-50/50 border-slate-100') }} transition-all flex flex-col gap-3">
                         <div class="flex items-start justify-between gap-2">
                             <div>
                                 <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 text-slate-700 text-xs font-bold mb-1">
@@ -72,32 +72,36 @@
                             
                             <!-- Small status badge -->
                             <span>
-                                @if($point->isCollected())
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wide">Collected</span>
-                                @elseif($point->isSkipped())
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 uppercase tracking-wide">Skipped</span>
-                                @else
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600 uppercase tracking-wide">Pending</span>
-                                @endif
+                                <span class="status-badge px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">
+                                    @if($point->isCollected())
+                                        <span class="bg-emerald-100 text-emerald-800">Collected</span>
+                                    @elseif($point->isSkipped())
+                                        <span class="bg-rose-100 text-rose-800">Skipped</span>
+                                    @else
+                                        <span class="bg-slate-200 text-slate-600">Pending</span>
+                                    @endif
+                                </span>
                             </span>
                         </div>
 
                         <!-- Action controls if active -->
-                        @if($session->status === 'active')
+                        @if($session->status === 'ongoing')
                             <div class="flex items-center gap-2 border-t border-slate-100 pt-2">
-                                <form action="{{ route('dashboard.update-point-status', [$session->id, $point->id]) }}" method="POST" class="flex-1">
+                                <form action="{{ route('dashboard.update-point-status', [$session->id, $point->id]) }}" method="POST" class="point-status-form flex-1">
                                     @csrf
+                                    <input type="hidden" name="point_id" value="{{ $point->id }}">
                                     <input type="hidden" name="status" value="collected">
-                                    <button type="submit" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1">
+                                    <button type="submit" class="btn-collect w-full py-1.5 px-3 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1">
                                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                         Collect
                                     </button>
                                 </form>
                                 
-                                <form action="{{ route('dashboard.update-point-status', [$session->id, $point->id]) }}" method="POST" class="flex-1">
+                                <form action="{{ route('dashboard.update-point-status', [$session->id, $point->id]) }}" method="POST" class="point-status-form flex-1">
                                     @csrf
+                                    <input type="hidden" name="point_id" value="{{ $point->id }}">
                                     <input type="hidden" name="status" value="skipped">
-                                    <button type="submit" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 transition-colors flex items-center justify-center gap-1">
+                                    <button type="submit" class="btn-skip w-full py-1.5 px-3 rounded-lg text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 transition-colors flex items-center justify-center gap-1">
                                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                         Skip
                                     </button>
@@ -162,7 +166,29 @@
             };
 
             const markerGroup = L.featureGroup();
+            const markerMap = {};
             const latlngs = [];
+
+            const updateMarker = (pointId, status, order, name, address) => {
+                const marker = markerMap[pointId];
+                if (!marker) return;
+
+                marker.setIcon(createCustomIcon(order, status));
+                const popupHtml = `
+                    <div class="p-1">
+                        <strong class="text-sm font-bold text-slate-800">${name}</strong>
+                        <p class="text-xs text-slate-500 mt-1">${address}</p>
+                        <span class="inline-block mt-2 px-2 py-0.5 text-[10px] font-bold rounded ${status === 'collected' ? 'bg-emerald-100 text-emerald-800' : status === 'skipped' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'} uppercase">
+                            Status: ${status}
+                        </span>
+                    </div>
+                `;
+
+                const popup = marker.getPopup();
+                if (popup) {
+                    popup.setContent(popupHtml);
+                }
+            };
 
             // Add markers
             points.forEach(point => {
@@ -178,6 +204,7 @@
                     </div>
                 `);
                 
+                markerMap[point.id] = marker;
                 markerGroup.addLayer(marker);
                 latlngs.push([point.lat, point.lng]);
             });
@@ -196,6 +223,102 @@
                 // Fit bounds to display entire route nicely
                 map.fitBounds(markerGroup.getBounds().pad(0.1));
             }
+
+            // -- AJAX point status handlers (Collect / Skip) --
+            document.querySelectorAll('.point-status-form').forEach(form => {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const formEl = e.currentTarget;
+                    const action = formEl.action;
+                    const formData = new FormData(formEl);
+                    const token = formData.get('_token');
+                    const status = formData.get('status');
+                    let wasSuccess = false;
+
+                    // Disable buttons to prevent duplicate
+                    const parent = formEl.closest('.point-card');
+                    const allForms = parent.querySelectorAll('.point-status-form');
+                    allForms.forEach(f => f.querySelector('button').disabled = true);
+
+                    try {
+                        const res = await fetch(action, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': token,
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                            },
+                            body: new URLSearchParams(Array.from(formData.entries())).toString()
+                        });
+
+                        if (!res.ok) throw new Error('Network response not ok');
+                        const json = await res.json();
+
+                        if (json.success) {
+                            // Update status badge
+                            const badgeWrap = parent.querySelector('.status-badge');
+                            if (badgeWrap) {
+                                if (status === 'collected') {
+                                    badgeWrap.innerHTML = '<span class="bg-emerald-100 text-emerald-800">Collected</span>';
+                                    parent.classList.remove('bg-slate-50/50','border-slate-100','bg-rose-50/50','border-rose-100');
+                                    parent.classList.add('bg-emerald-50/50','border-emerald-100');
+                                } else if (status === 'skipped') {
+                                    badgeWrap.innerHTML = '<span class="bg-rose-100 text-rose-800">Skipped</span>';
+                                    parent.classList.remove('bg-slate-50/50','border-slate-100','bg-emerald-50/50','border-emerald-100');
+                                    parent.classList.add('bg-rose-50/50','border-rose-100');
+                                } else {
+                                    badgeWrap.innerHTML = '<span class="bg-slate-200 text-slate-600">Pending</span>';
+                                    parent.classList.remove('bg-emerald-50/50','border-emerald-100','bg-rose-50/50','border-rose-100');
+                                    parent.classList.add('bg-slate-50/50','border-slate-100');
+                                }
+                            }
+
+                            // Update map marker color and popup
+                            const pointId = formData.get('point_id');
+                            const markerPoint = points.find(p => p.id === pointId);
+                            if (markerPoint) {
+                                markerPoint.status = status;
+                                updateMarker(pointId, status, markerPoint.order, markerPoint.name, markerPoint.address);
+                            }
+
+                            // Disable both action buttons and show collected state
+                            const collectBtn = parent.querySelector('.btn-collect');
+                            const skipBtn = parent.querySelector('.btn-skip');
+                            if (collectBtn) {
+                                if (status === 'collected') {
+                                    collectBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Collected';
+                                    collectBtn.classList.remove('bg-emerald-600','hover:bg-emerald-700');
+                                    collectBtn.classList.add('bg-emerald-700');
+                                } else {
+                                    collectBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Collect';
+                                }
+                            }
+                            if (skipBtn) {
+                                if (status === 'skipped') {
+                                    skipBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg> Skipped';
+                                    skipBtn.classList.remove('bg-rose-50','hover:bg-rose-100');
+                                    skipBtn.classList.add('bg-rose-100');
+                                } else {
+                                    skipBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg> Skip';
+                                }
+                            }
+
+                            allForms.forEach(f => f.querySelector('button').disabled = true);
+                            wasSuccess = true;
+                        } else {
+                            alert(json.message || 'Failed to update point status');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('Failed to update status — please try again');
+                    } finally {
+                        if (!wasSuccess) {
+                            allForms.forEach(f => f.querySelector('button').disabled = false);
+                        }
+                    }
+                });
+            });
         });
     </script>
 @endsection

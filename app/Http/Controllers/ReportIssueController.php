@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use App\Models\ViolationReport;
 use App\Models\MissedCollectionReport;
 use Exception;
@@ -37,7 +38,7 @@ class ReportIssueController extends Controller
         $activeSession = \App\Models\CollectionSession::whereHas('schedule', function ($query) use ($user) {
             $query->where('barangay_id', $user->barangay_id);
         })
-            ->whereIn('status', ['pending', 'active'])
+            ->whereIn('status', ['pending', 'ongoing'])
             ->latest('session_date')
             ->first();
 
@@ -50,6 +51,24 @@ class ReportIssueController extends Controller
         }
 
         return view('dashboard.partials.user.my-report-missed-pickup', compact('reports', 'collectionPoints', 'activeSession'));
+    }
+
+    public function showViolationReport($id)
+    {
+        $report = ViolationReport::with('barangay')
+            ->where('reported_by', Auth::id())
+            ->findOrFail($id);
+
+        return view('dashboard.reports.violation-detail', compact('report'));
+    }
+
+    public function showMissedCollectionReport($id)
+    {
+        $report = MissedCollectionReport::with(['collectionPoint', 'session'])
+            ->where('reported_by', Auth::id())
+            ->findOrFail($id);
+
+        return view('dashboard.reports.missed-detail', compact('report'));
     }
 
     public function reportViolation(Request $request)

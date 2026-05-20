@@ -46,4 +46,12 @@ class MissedCollectionReport extends Model
     {
         return $this->belongsTo(CollectionPoint::class);
     }
+
+    /**
+     * Get the collection session associated with this report.
+     */
+    public function session(): BelongsTo
+    {
+        return $this->belongsTo(CollectionSession::class);
+    }
 }

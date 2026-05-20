@@ -8,6 +8,7 @@ use App\Models\SessionPoint;
 use App\Models\GarbagePoint;
 use App\Models\Barangay;
 use App\Models\Truck;
+use App\Models\CollectionSchedule;
 use App\Models\CollectionPoint;
 use App\Models\TruckFullEvent;
 use Illuminate\Support\Facades\Auth;
@@ -25,10 +26,10 @@ class CollectionSessionController extends Controller
 
         // Auto-seed trucks if none exist
         $this->ensureTrucksExist($barangayId);
-        
-        // Find if there is an active session
+
+        // Find if there is an ongoing session
         $activeSession = CollectionSession::where('collector_id', $user->id)
-            ->where('status', 'active')
+            ->where('status', 'ongoing')
             ->first();
 
         // Get barangay boundary info
@@ -48,9 +49,19 @@ class CollectionSessionController extends Controller
     {
         $user = Auth::user();
         $barangayId = $user->barangay_id ?? Barangay::first()->id;
-        
+
         // Ensure we have some garbage points to route
         $this->ensureGarbagePointsExist($barangayId);
+
+        $request->validate([
+            'plate_number' => 'required|string|exists:trucks,plate_number',
+        ]);
+
+        $truck = Truck::where('barangay_id', $barangayId)
+            ->where('plate_number', $request->plate_number)
+            ->firstOrFail();
+
+        $schedule = $this->getCollectionScheduleForBarangay($barangayId);
 
         // Find or create a pending session for today
         $session = CollectionSession::where('collector_id', $user->id)
@@ -59,10 +70,10 @@ class CollectionSessionController extends Controller
 
         if (!$session) {
             $session = CollectionSession::create([
-                'barangay_id' => $barangayId,
                 'collector_id' => $user->id,
-                'scheduled_date' => now()->toDateString(),
-                'scheduled_time' => now()->toTimeString(),
+                'schedule_id' => $schedule->id,
+                'truck_id' => $truck->id,
+                'session_date' => now()->toDateString(),
                 'status' => 'pending',
             ]);
 
@@ -83,7 +94,7 @@ class CollectionSessionController extends Controller
 
         // Start the route session
         $session->update([
-            'status' => 'active',
+            'status' => 'ongoing',
             'started_at' => now(),
         ]);
 
@@ -101,9 +112,9 @@ class CollectionSessionController extends Controller
         // Auto-seed garbage points if none exist so the page works out of the box
         $this->ensureGarbagePointsExist($barangayId);
 
-        // Find active session first
+        // Find ongoing session first
         $session = CollectionSession::where('collector_id', $user->id)
-            ->where('status', 'active')
+            ->where('status', 'ongoing')
             ->first();
 
         // If no active, check pending session
@@ -115,11 +126,12 @@ class CollectionSessionController extends Controller
 
         // If no session exists at all, auto-create a pending one for demo purposes
         if (!$session) {
+            $schedule = $this->getCollectionScheduleForBarangay($barangayId);
             $session = CollectionSession::create([
-                'barangay_id' => $barangayId,
                 'collector_id' => $user->id,
-                'scheduled_date' => now()->toDateString(),
-                'scheduled_time' => now()->toTimeString(),
+                'schedule_id' => $schedule->id,
+                'truck_id' => optional(Truck::where('barangay_id', $barangayId)->where('is_active', true)->first())->id,
+                'session_date' => now()->toDateString(),
                 'status' => 'pending',
             ]);
 
@@ -148,15 +160,47 @@ class CollectionSessionController extends Controller
     }
 
     /**
+     * Return a collection schedule for the given barangay.
+     *
+     * If no active schedule exists, return the first available schedule.
+     */
+    private function getCollectionScheduleForBarangay($barangayId)
+    {
+        $schedule = CollectionSchedule::where('barangay_id', $barangayId)
+            ->where('is_active', true)
+            ->orderBy('collection_time')
+            ->first();
+
+        if (!$schedule) {
+            $schedule = CollectionSchedule::where('barangay_id', $barangayId)
+                ->orderBy('collection_time')
+                ->first();
+        }
+        $this->ensureTrucksExist($barangayId);
+
+        if (!$schedule) {
+            $schedule = CollectionSchedule::create([
+                'barangay_id' => $barangayId,
+                'day_of_week' => strtolower(now()->format('l')),
+                'collection_time' => '08:00',
+                'frequency' => 'daily',
+                'is_active' => true,
+            ]);
+        }
+
+        return $schedule;
+    }
+
+    /**
      * Start the route from the route-map page.
      */
     public function startRoute(Request $request, $id)
     {
         $session = CollectionSession::findOrFail($id);
-        
+
         if ($session->status === 'pending') {
             $session->update([
-                'status' => 'active',
+                'status' => 'ongoing',
                 'started_at' => now(),
             ]);
         }
@@ -170,8 +214,8 @@ class CollectionSessionController extends Controller
     public function completeRoute(Request $request, $id)
     {
         $session = CollectionSession::findOrFail($id);
-        
-        if ($session->status === 'active') {
+
+        if ($session->status === 'ongoing') {
             $session->update([
                 'status' => 'completed',
                 'ended_at' => now(),
@@ -220,11 +264,11 @@ class CollectionSessionController extends Controller
     public function pointLogs()
     {
         $user = Auth::user();
-        
+
         // Fetch session points completed (collected or skipped) by the current collector
         $logs = SessionPoint::whereHas('session', function ($query) use ($user) {
-                $query->where('collector_id', $user->id);
-            })
+            $query->where('collector_id', $user->id);
+        })
             ->whereIn('status', ['collected', 'skipped'])
             ->with(['garbagePoint', 'session'])
             ->orderByDesc('collected_at')
@@ -244,9 +288,9 @@ class CollectionSessionController extends Controller
         // Auto-seed collection points if none exist so the page has valid foreign keys
         $this->ensureCollectionPointsExist($barangayId);
 
-        // Find active session
+        // Find ongoing session
         $activeSession = CollectionSession::where('collector_id', $user->id)
-            ->where('status', 'active')
+            ->where('status', 'ongoing')
             ->first();
 
         // Get collection points to display where they are at

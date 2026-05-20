@@ -358,7 +358,7 @@
                                     $badgeClass = 'bg-green-50 text-green-600 border-green-200';
                             @endphp
 
-                            <div class="report-item bg-white p-5 rounded-xl border border-slate-200 flex flex-col md:flex-row gap-5 justify-between shadow-sm hover:shadow-md transition-shadow"
+                            <a href="{{ route('reports.violation.show', $report->id) }}" class="report-item bg-white p-5 rounded-xl border border-slate-200 flex flex-col md:flex-row gap-5 justify-between shadow-sm hover:shadow-md transition-shadow no-underline"
                                 data-status="{{ $status == 'investigating' ? 'under review' : ($status == 'resolved' ? 'fined' : $status) }}">
                                 
                                 <div class="flex-1">

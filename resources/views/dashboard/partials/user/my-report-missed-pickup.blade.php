@@ -208,14 +208,14 @@
                             }
                         @endphp
 
-                        <div class="px-5 py-4 hover:bg-slate-50 transition-colors">
+                        <a href="{{ route('reports.missed.show', $report->id) }}" class="group block px-5 py-4 hover:bg-slate-50 transition-colors rounded-xl no-underline">
                             <div class="flex items-start justify-between gap-3 mb-1">
                                 <p class="text-sm font-semibold text-slate-800 truncate">{{ $report->collectionPoint->name ?? 'Unknown collection point' }}</p>
                                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 {{ $badgeClass }}">{{ ucfirst($report->status) }}</span>
                             </div>
                             <p class="text-[11px] text-slate-400 mb-1">{{ $report->created_at->diffForHumans() }}</p>
                             <p class="text-xs text-slate-500 leading-relaxed">{{ \Illuminate\Support\Str::limit($report->notes ?? 'No notes provided.', 110) }}</p>
-                        </div>
+                        </a>
                     @empty
                         <div class="px-5 py-10 flex flex-col items-center justify-center text-center">
                             <div class="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">

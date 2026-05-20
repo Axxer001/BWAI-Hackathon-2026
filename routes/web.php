@@ -240,7 +240,7 @@ Route::get('/dashboard/points-manage', function () {
 
 Route::get('/api/barangay/live-tracking', function () {
     $barangayId = auth()->user()->barangay_id;
-    $sessions = \App\Models\CollectionSession::where('status', 'active')
+    $sessions = \App\Models\CollectionSession::where('status', 'ongoing')
         ->where('barangay_id', $barangayId)
         ->with(['collector', 'sessionPoints.garbagePoint'])
         ->get();
@@ -500,10 +500,12 @@ Route::get('/api/notify/test', [\App\Http\Controllers\SmsNotificationController:
 Route::middleware(['auth'])->group(function () {
     // Show the form (GET) - This will now properly trigger your controller!
     Route::get('/dashboard/report-violation', [ReportIssueController::class, 'createViolationForm'])->name('reports.create');
+    Route::get('/dashboard/report-violation/{id}', [ReportIssueController::class, 'showViolationReport'])->name('reports.violation.show');
 
     // Handle the submission (POST)
     Route::post('/dashboard/report-violation', [ReportIssueController::class, 'reportViolation'])->name('reports.store');
 
     // Missed pickup report routes
+    Route::get('/dashboard/report-missed/{id}', [ReportIssueController::class, 'showMissedCollectionReport'])->name('reports.missed.show');
     Route::post('/dashboard/report-missed', [ReportIssueController::class, 'reportMissedCollection'])->name('reports.missed.store');
 });
