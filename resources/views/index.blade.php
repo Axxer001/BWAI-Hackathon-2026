@@ -85,7 +85,7 @@
     <div id="hero-slideshow" class="relative h-[500px] animate-slideUp rounded-3xl overflow-hidden shadow-2xl">
         
         <div class="slide absolute inset-0 transition-opacity duration-1000 opacity-100 z-10">
-            <img src="{{ asset('images/garbage_collection.jpg') }}" class="w-full h-full object-cover block" alt="Waste Collection" />
+            <img src="{{ asset('images/garbage_route_notif.png') }}" class="w-full h-full object-cover block" alt="Waste Collection" />
             <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent"></div>
             <div class="absolute bottom-6 left-6 text-white">
                 <span class="px-3 py-1 bg-green-500 text-[10px] font-bold uppercase tracking-wider rounded-full mb-2 inline-block shadow-sm">Live Active Route</span>
@@ -95,7 +95,7 @@
         </div>
 
         <div class="slide absolute inset-0 transition-opacity duration-1000 opacity-0 z-0">
-            <img src="{{ asset('images/segregate_garbage.jpg') }}" class="w-full h-full object-cover block" alt="AI Segregation" />
+            <img src="{{ asset('images/garbage_scan.png') }}" class="w-full h-full object-cover block" alt="AI Segregation" />
             <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent"></div>
             <div class="absolute bottom-6 left-6 text-white">
                 <span class="px-3 py-1 bg-purple-500 text-[10px] font-bold uppercase tracking-wider rounded-full mb-2 inline-block shadow-sm">AI Segregation</span>
