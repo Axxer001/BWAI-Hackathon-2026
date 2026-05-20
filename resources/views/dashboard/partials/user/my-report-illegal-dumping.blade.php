@@ -3,6 +3,8 @@
 @section('title', 'Report Illegal Dumping')
 
 @section('content')
+    {{-- Leaflet CSS for the map --}}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     {{-- Header --}}
     <div class="mb-8 animate-slideUp">
@@ -59,33 +61,45 @@
                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 transition-all">
                     </div>
 
+                    {{-- Map Selection --}}
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                            Pin Location on Map
+                        </label>
+                        {{-- z-0 ensures the map controls don't overlap dropdowns or headers --}}
+                        <div id="interactiveMap" class="w-full h-64 bg-slate-100 border border-slate-200 rounded-xl mb-2 z-0 relative"></div>
+                        <p class="text-[11px] text-slate-500 mb-1">Click on the map to place a pin, drag it to adjust, or use your GPS location below.</p>
+                    </div>
+
                     {{-- GPS coordinates row --}}
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                                 Latitude
                             </label>
-                            <input type="number" step="any" id="latInput" placeholder="6.9214"
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 transition-all">
+                            <input type="number" step="any" id="latInput" placeholder="6.9214" readonly
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500 cursor-not-allowed outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                                 Longitude
                             </label>
-                            <input type="number" step="any" id="lngInput" placeholder="122.0790"
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 transition-all">
+                            <input type="number" step="any" id="lngInput" placeholder="122.0790" readonly
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500 cursor-not-allowed outline-none">
                         </div>
                     </div>
 
                     {{-- Use my location button --}}
                     <button type="button" id="getLocationBtn"
-                            class="flex items-center gap-2 text-xs font-semibold text-orange-600 hover:text-orange-800 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-4 py-2 rounded-lg transition-all">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            class="flex items-center justify-center gap-2 text-xs font-semibold text-orange-600 hover:text-orange-800 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-4 py-2.5 rounded-lg transition-all w-full lg:w-auto">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
-                        Use My Current Location
+                        Use My Current GPS Location
                     </button>
+
+                    <hr class="border-slate-100 my-2">
 
                     {{-- Description --}}
                     <div>
@@ -128,7 +142,7 @@
 
                     {{-- Submit --}}
                     <button type="button"
-                            class="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-sm shadow-orange-200">
+                            class="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-sm shadow-orange-200 mt-2">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                         </svg>
@@ -260,8 +274,11 @@
         </div>
     </div>
 
+    {{-- Leaflet JS for Map Interaction --}}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
-        // Photo preview
+        // --- 1. Photo preview Logic ---
         const photoInput   = document.getElementById('photoInput');
         const photoPreview = document.getElementById('photoPreviewWrap');
         const photoDefault = document.getElementById('photoDropDefault');
@@ -277,12 +294,75 @@
             photoDefault.classList.add('hidden');
         });
 
-        // Get current GPS location
+        // --- 2. Interactive Map Logic ---
+        // Default coordinates: Zamboanga City
+        const defaultLat = 6.9214;
+        const defaultLng = 122.0790;
+
+        const latInput = document.getElementById('latInput');
+        const lngInput = document.getElementById('lngInput');
+
+        // Initialize Map
+        const map = L.map('interactiveMap').setView([defaultLat, defaultLng], 14);
+
+        // Load OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add a draggable marker
+        let marker = L.marker([defaultLat, defaultLng], {
+            draggable: true
+        }).addTo(map);
+
+        // Function to update input fields
+        function updateCoordinates(lat, lng) {
+            latInput.value = lat.toFixed(7);
+            lngInput.value = lng.toFixed(7);
+        }
+
+        // Initialize fields with default
+        updateCoordinates(defaultLat, defaultLng);
+
+        // Update when marker is dragged
+        marker.on('dragend', function (e) {
+            const pos = marker.getLatLng();
+            updateCoordinates(pos.lat, pos.lng);
+        });
+
+        // Move marker and update inputs when map is clicked
+        map.on('click', function(e) {
+            marker.setLatLng(e.latlng);
+            updateCoordinates(e.latlng.lat, e.latlng.lng);
+        });
+
+        // --- 3. Get current GPS location button ---
         document.getElementById('getLocationBtn').addEventListener('click', () => {
-            if (!navigator.geolocation) return;
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+
+            // Optional: change button text or add a spinner here
+            const btn = document.getElementById('getLocationBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Locating...';
+
             navigator.geolocation.getCurrentPosition(pos => {
-                document.getElementById('latInput').value = pos.coords.latitude.toFixed(7);
-                document.getElementById('lngInput').value = pos.coords.longitude.toFixed(7);
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                
+                // Update map and inputs
+                const newLatLng = new L.LatLng(lat, lng);
+                marker.setLatLng(newLatLng);
+                map.setView(newLatLng, 17); // zoom in closer
+                updateCoordinates(lat, lng);
+
+                btn.innerHTML = originalText;
+            }, (error) => {
+                alert("Unable to retrieve your location. Please check your browser permissions.");
+                btn.innerHTML = originalText;
             });
         });
     </script>

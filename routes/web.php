@@ -300,5 +300,3 @@ Route::post('/api/assess-waste', [WasteAssessmentController::class, 'assess']);
 Route::post('/api/reports/violation', [ReportIssueController::class, 'reportViolation']);
 Route::post('/api/reports/missed-collection', [ReportIssueController::class, 'reportMissedCollection']);
 
-// Include the map routes
-require __DIR__.'/map.php';

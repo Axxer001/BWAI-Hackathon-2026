@@ -1,86 +1,86 @@
 @extends('dashboard.layout')
 
-@section('title', 'Fleet & Tracking')
+@section('title', 'Track Fleet & Trucks')
 
 @section('content')
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    {{-- Welcome header --}}
     <div class="mb-8 animate-slideUp">
-        <h1 class="font-syne text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">📡 Fleet Management & Live Tracking</h1>
-        <p class="text-sm text-slate-500 font-medium">Monitor active collectors, track truck paths in real-time, and manage barangay fleet resources.</p>
+        <h1 class="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Track Fleet & Trucks</h1>
+        <p class="text-sm text-slate-500">Monitor active garbage collection vehicles within your jurisdiction in real-time.</p>
     </div>
 
-    @if(session('success'))
-        <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold animate-slideUp">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    {{-- Live Tracking Section --}}
-    <div class="bg-white rounded-2xl border border-slate-200 p-2 shadow-sm mb-8 animate-slideUp" style="animation-delay: 0.1s;">
-        <div class="px-5 py-4 flex items-center justify-between border-b border-slate-100 bg-slate-50/30">
-            <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <h3 class="font-bold text-slate-900 text-sm">Live Collectors Telemetry Map</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-slideUp" style="animation-delay: 0.1s;">
+            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <span class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                    </span>
+                    Live GPS Tracking Active
+                </span>
             </div>
-            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Updates every 10s</span>
-        </div>
-        <div id="live-map" class="w-full rounded-xl" style="height: 380px; z-index: 1;"></div>
-    </div>
-
-    {{-- Management Grid --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slideUp" style="animation-delay: 0.2s;">
-        
-        {{-- Fleet Trucks Section --}}
-        <div class="flex flex-col gap-6">
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-sm mb-4">Add Fleet Truck</h3>
-                <form method="POST" action="{{ route('dashboard.fleet.trucks.store') }}" class="flex flex-col sm:flex-row gap-4">
-                    @csrf
-                    <div class="flex-1 flex flex-col gap-1.5">
-                        <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Plate Number</label>
-                        <input type="text" name="plate_number" placeholder="e.g. ZAM-991" required class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-slate-50">
-                    </div>
-                    <div class="w-full sm:w-[140px] flex flex-col gap-1.5">
-                        <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Capacity (Tons)</label>
-                        <input type="number" step="0.1" name="capacity_tons" placeholder="e.g. 2.5" required class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-slate-50">
-                    </div>
-                    <button type="submit" class="sm:self-end py-2 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm">
-                        Add
-                    </button>
-                </form>
+            <div class="w-full h-[450px] bg-slate-200 relative">
+                <iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" 
+                    src="https://www.openstreetmap.org/export/embed.html?bbox=122.065%2C6.905%2C122.085%2C6.920&amp;layer=mapnik" 
+                    class="block" style="filter: contrast(1.1) saturate(1.2);">
+                </iframe>
             </div>
+        </div>
 
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                    <h3 class="text-sm font-bold text-slate-900">Active Trucks</h3>
+        <div class="lg:col-span-1 flex flex-col gap-4 animate-slideUp" style="animation-delay: 0.2s;">
+            <h3 class="text-sm font-bold text-slate-900 px-1">Active Vehicles ({{ isset($activeSessions) ? $activeSessions->count() : 0 }})</h3>
+            
+            @if(isset($activeSessions) && $activeSessions->count() > 0)
+                @foreach($activeSessions as $session)
+                    <div class="bg-white p-5 rounded-2xl border border-blue-200 shadow-sm shadow-blue-100 flex flex-col gap-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-900">{{ $session->truck_name ?? 'Truck Unassigned' }}</h4>
+                                <p class="text-xs text-slate-500">Driver: {{ $session->collector->name ?? 'Unknown' }}</p>
+                            </div>
+                            <span class="px-2.5 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase rounded-md">In Transit</span>
+                        </div>
+                        
+                        @php
+                            $totalPts = $session->sessionPoints ? $session->sessionPoints->count() : 0;
+                            $collectedPts = $session->sessionPoints ? $session->sessionPoints->where('status', 'collected')->count() : 0;
+                            $pct = $totalPts > 0 ? round(($collectedPts / $totalPts) * 100) : 0;
+                        @endphp
+                        
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+                            <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ $pct }}%"></div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 text-right">Route {{ $pct }}% Complete ({{ $collectedPts }}/{{ $totalPts }} points)</p>
+                    </div>
+                @endforeach
+            @else
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <p class="text-xs text-slate-500 py-2">No active vehicles currently.</p>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-bold tracking-wider">
-                            <tr>
-                                <th class="px-6 py-3">Plate</th>
-                                <th class="px-6 py-3">Capacity</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 text-slate-600 font-medium">
-                            @forelse($trucks as $truck)
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-6 py-4 font-bold text-slate-800">{{ $truck->plate_number }}</td>
-                                    <td class="px-6 py-4 text-xs">{{ $truck->capacity_tons }} Tons</td>
-                                    <td class="px-6 py-4">
-                                        @if($truck->is_active)
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">Active</span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200">Out of Service</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 text-right">
-                                        <form method="POST" action="{{ route('dashboard.fleet.trucks.toggle', $truck->id) }}">
-                                            @csrf
+            @endif
+
+            <h3 class="text-sm font-bold text-slate-900 px-1 mt-4">Idle/Pending Vehicles ({{ isset($idleSessions) ? $idleSessions->count() : 0 }})</h3>
+            
+            @if(isset($idleSessions) && $idleSessions->count() > 0)
+                @foreach($idleSessions as $session)
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-3 opacity-75">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-900">{{ $session->truck_name ?? 'Truck Unassigned' }}</h4>
+                                <p class="text-xs text-slate-500">Driver: {{ $session->collector->name ?? 'Pending Assignment' }}</p>
+                            </div>
+                            <span class="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded-md">Idle</span>
+                        </div>
+                    </div>
+                @endforeach
+            @else
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <p class="text-xs text-slate-500 py-2">No idle vehicles currently.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+@endsection                                 @csrf
                                             <button type="submit" class="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-lg transition-colors">
                                                 {{ $truck->is_active ? 'Disable' : 'Enable' }}
                                             </button>
