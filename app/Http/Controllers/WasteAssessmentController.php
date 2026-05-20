@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use App\Models\WasteAssessment;
+use App\Models\AiGarbageLog;
+use Illuminate\Support\Facades\Storage;
 use Exception;
 
 class WasteAssessmentController extends Controller
@@ -13,8 +14,8 @@ class WasteAssessmentController extends Controller
      * Assesses an uploaded waste image using the Gemini API.
      * 
      * Validates the image, sends it to Google's Gemini 1.5 Flash model for analysis, 
-     * extracts the waste name, category, and preparation advice, logs the name 
-     * for analytics, and returns the structured data to the client.
+     * extracts the waste name, category, and preparation advice, logs the data 
+     * into the AiGarbageLog table, and returns the structured data to the client.
      *
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -23,17 +24,23 @@ class WasteAssessmentController extends Controller
     {
         /**
          * Validate the incoming request payload.
-         * Ensures that 'image' is present, is a valid image file,
-         * matches supported mime types, and is under 5MB in size.
          */
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
-            'barangay_id' => 'required|integer',
+            'user_id' => 'required|uuid', // Requires the user_id (UUID)
+            'garbage_point_id' => 'nullable|uuid',
         ]);
 
         try {
-            $imagePath = $request->file('image')->getPathname();
-            $mimeType = $request->file('image')->getMimeType();
+            $imageFile = $request->file('image');
+            $imagePath = $imageFile->getPathname();
+            $mimeType = $imageFile->getMimeType();
+            
+            /**
+             * Save the image to the public disk so we have an image_url for the log.
+             */
+            $storedPath = $imageFile->store('garbage_logs', 'public');
+            $imageUrl = Storage::url($storedPath);
             
             /**
              * Encode the image to Base64 format as required by the 
@@ -46,8 +53,6 @@ class WasteAssessmentController extends Controller
 
             /**
              * Construct the payload for the Gemini API.
-             * Defines the prompt instructions and attaches the base64 encoded image.
-             * Requests a strictly formatted JSON response.
              */
             $payload = [
                 'contents' => [
@@ -79,8 +84,6 @@ class WasteAssessmentController extends Controller
 
             /**
              * Parse the JSON response received from the Gemini API.
-             * Cleans up any potential markdown formatting block quotes that 
-             * the LLM might have included in its response string.
              */
             $result = $response->json();
             $aiText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '{}';
@@ -93,12 +96,14 @@ class WasteAssessmentController extends Controller
             }
 
             /**
-             * Persist the name of the identified waste to the database.
-             * This record serves exclusively for system analytics and tracking.
+             * Persist the AI assessment to the AiGarbageLog table.
              */
-            WasteAssessment::create([
-                'name' => $wasteData['name'],
-                'barangay_id' => $request->barangay_id
+            AiGarbageLog::create([
+                'user_id' => $request->user_id,
+                'garbage_point_id' => $request->garbage_point_id,
+                'image_url' => $imageUrl,
+                'ai_advice' => $wasteData['preparation_advice'] ?? 'No advice provided.',
+                'garbage_type' => $wasteData['name'] // Storing the specific waste name as garbage_type
             ]);
 
             /**
@@ -109,7 +114,8 @@ class WasteAssessmentController extends Controller
                 'data' => [
                     'name' => $wasteData['name'],
                     'category' => $wasteData['category'] ?? 'Unknown',
-                    'preparation_advice' => $wasteData['preparation_advice'] ?? 'No advice provided.'
+                    'preparation_advice' => $wasteData['preparation_advice'] ?? 'No advice provided.',
+                    'image_url' => $imageUrl
                 ]
             ]);
 
