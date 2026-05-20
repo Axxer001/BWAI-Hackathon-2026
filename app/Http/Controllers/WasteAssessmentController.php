@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use App\Models\AiGarbageLog;
+use App\Models\WasteScan;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 
@@ -28,7 +28,7 @@ class WasteAssessmentController extends Controller
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
             'user_id' => 'required|uuid', // Requires the user_id (UUID)
-            'garbage_point_id' => 'nullable|uuid',
+            'collection_point_id' => 'nullable|uuid',
         ]);
 
         try {
@@ -96,14 +96,14 @@ class WasteAssessmentController extends Controller
             }
 
             /**
-             * Persist the AI assessment to the AiGarbageLog table.
+             * Persist the AI assessment to the waste_scans table.
              */
-            AiGarbageLog::create([
+            WasteScan::create([
                 'user_id' => $request->user_id,
-                'garbage_point_id' => $request->garbage_point_id,
+                'collection_point_id' => $request->collection_point_id,
                 'image_url' => $imageUrl,
                 'ai_advice' => $wasteData['preparation_advice'] ?? 'No advice provided.',
-                'garbage_type' => $wasteData['name'] // Storing the specific waste name as garbage_type
+                'ai_classification' => $wasteData['name'] // Storing the specific waste name as ai_classification
             ]);
 
             /**

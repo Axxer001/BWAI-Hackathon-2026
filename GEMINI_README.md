@@ -43,7 +43,7 @@ GEMINI_API_KEY=your_api_key_here
 | :--- | :--- | :--- | :--- |
 | `image` | File | **Yes** | The image of the waste to be analyzed (max 5MB). |
 | `user_id` | UUID | **Yes** | The UUID of the user scanning the waste. |
-| `garbage_point_id` | UUID | No | The UUID of the garbage point (if applicable). |
+| `collection_point_id` | UUID | No | The UUID of the collection point (if applicable). |
 
 ### Example using cURL
 ```bash
