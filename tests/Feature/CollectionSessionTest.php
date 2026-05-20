@@ -89,4 +89,50 @@ class CollectionSessionTest extends TestCase
         $this->assertEquals('collected', $sessionPoint->fresh()->status);
         $this->assertNotNull($sessionPoint->fresh()->collected_at);
     }
+
+    public function test_collector_can_view_point_logs()
+    {
+        $this->actingAs($this->user);
+
+        // Access route map to auto-seed and create a session
+        $this->get('/dashboard/route-map');
+        $session = CollectionSession::first();
+        $sessionPoint = SessionPoint::first();
+
+        // Mark a point as collected
+        $this->post(route('dashboard.update-point-status', [$session->id, $sessionPoint->id]), [
+            'status' => 'collected'
+        ]);
+
+        $response = $this->get('/dashboard/point-logs');
+
+        $response->assertStatus(200);
+        $response->assertSee('Collection History Log');
+        $response->assertSee('Collected');
+    }
+
+    public function test_collector_can_log_truck_full()
+    {
+        $this->actingAs($this->user);
+
+        // Start session
+        $this->get('/dashboard/route-map');
+        $session = CollectionSession::first();
+        $this->post(route('dashboard.start-route', $session->id));
+
+        // Display page
+        $response = $this->get('/dashboard/truck-full');
+        $response->assertStatus(200);
+
+        $collectionPoint = \App\Models\CollectionPoint::first();
+
+        $postResponse = $this->post(route('dashboard.log-truck-full'), [
+            'session_id' => $session->id,
+            'collection_point_id' => $collectionPoint->id,
+            'estimated_load' => '100%',
+        ]);
+
+        $postResponse->assertRedirect();
+        $this->assertEquals(1, \App\Models\TruckFullEvent::count());
+    }
 }
