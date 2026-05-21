@@ -11,41 +11,50 @@ use App\Models\Truck;
 use App\Models\CollectionSchedule;
 use App\Models\CollectionPoint;
 use App\Models\TruckFullEvent;
+use App\Models\User;
+use App\Models\UserPointAssignment;
+use App\Mail\TruckApproachingMail;
+use App\Mail\WasteCollectedMail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-
 class CollectionSessionController extends Controller
 {
-    /**
-     * Show the active session manager page (Start Active Shift).
-     */
     public function activeSession()
     {
-        $user = Auth::user();
-        $barangayId = $user->barangay_id ?? Barangay::first()->id;
+        $user = auth()->user();
 
-        // Auto-seed trucks if none exist
-        $this->ensureTrucksExist($barangayId);
-
-        // Find if there is an ongoing session
-        $activeSession = CollectionSession::where('collector_id', $user->id)
-            ->where('status', 'ongoing')
+        // 1. Fetch the active or pending session for the collector
+        $activeSession = CollectionSession::with('truck') 
+            ->where('collector_id', $user->id)
+            ->whereIn('status', ['pending', 'ongoing'])
             ->first();
 
-        // Get barangay boundary info
-        $barangay = Barangay::find($barangayId) ?? Barangay::first();
-        $boundaryName = $barangay ? $barangay->name : 'Zamboanga City';
+        // 2. Fetch available trucks for the form
+        $trucks = Truck::where('barangay_id', $user->barangay_id)
+            ->where('is_active', true)
+            ->get();
 
-        // Fetch active trucks
-        $trucks = Truck::where('barangay_id', $barangayId)->where('is_active', true)->get();
+        // 3. Fetch today's schedule for the barangay
+        $today = strtolower(now()->format('l')); // e.g., 'monday'
+        $todaySchedule = CollectionSchedule::where('barangay_id', $user->barangay_id)
+            ->where('day_of_week', $today)
+            ->where('is_active', true)
+            ->first();
+            
+        // We also need $boundaryName for the view when there is no active session
+        $boundaryName = $user->barangay->name ?? 'Zone';
 
-        return view('dashboard.partials.collector.active-session', compact('activeSession', 'boundaryName', 'trucks'));
+        // 4. Pass all variables to the view
+        return view('dashboard.partials.collector.active-session', compact(
+            'activeSession', 
+            'trucks', 
+            'todaySchedule',
+            'boundaryName'
+        ));
     }
-
-    /**
-     * Start the collection session from the shift manager.
-     */
-    public function startSession(Request $request)
+       public function startSession(Request $request)
     {
         $user = Auth::user();
         $barangayId = $user->barangay_id ?? Barangay::first()->id;
@@ -70,11 +79,12 @@ class CollectionSessionController extends Controller
 
         if (!$session) {
             $session = CollectionSession::create([
+                'barangay_id'  => $barangayId,
                 'collector_id' => $user->id,
-                'schedule_id' => $schedule->id,
-                'truck_id' => $truck->id,
+                'schedule_id'  => $schedule->id,
+                'truck_id'     => $truck->id,
                 'session_date' => now()->toDateString(),
-                'status' => 'pending',
+                'status'       => 'pending',
             ]);
 
             // Link garbage points to this session
@@ -94,9 +104,12 @@ class CollectionSessionController extends Controller
 
         // Start the route session
         $session->update([
-            'status' => 'ongoing',
+            'status'     => 'ongoing',
             'started_at' => now(),
         ]);
+
+        // ── Notify all residents in this barangay that collection has started ──
+        $this->notifyResidentsSessionStarted($barangayId);
 
         return redirect()->route('dashboard.route-map')->with('success', 'Collection shift started successfully!');
     }
@@ -128,11 +141,12 @@ class CollectionSessionController extends Controller
         if (!$session) {
             $schedule = $this->getCollectionScheduleForBarangay($barangayId);
             $session = CollectionSession::create([
+                'barangay_id'  => $barangayId,
                 'collector_id' => $user->id,
-                'schedule_id' => $schedule->id,
-                'truck_id' => optional(Truck::where('barangay_id', $barangayId)->where('is_active', true)->first())->id,
+                'schedule_id'  => $schedule->id,
+                'truck_id'     => optional(Truck::where('barangay_id', $barangayId)->where('is_active', true)->first())->id,
                 'session_date' => now()->toDateString(),
-                'status' => 'pending',
+                'status'       => 'pending',
             ]);
 
             // Get garbage points for this barangay
@@ -203,6 +217,9 @@ class CollectionSessionController extends Controller
                 'status' => 'ongoing',
                 'started_at' => now(),
             ]);
+
+            // ── Notify all residents in this barangay that collection has started ──
+            $this->notifyResidentsSessionStarted($session->barangay_id);
         }
 
         return redirect()->back()->with('success', 'Route navigation active! Drive safely.');
@@ -247,11 +264,16 @@ class CollectionSessionController extends Controller
 
         $sessionPoint->update($updateData);
 
+        // ── Auto-notify residents when truck arrives at their collection point ──
+        if ($request->status === 'collected') {
+            $this->notifyResidentsAtPoint($sessionPoint->garbage_point_id);
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Point status updated successfully.',
-                'point' => $sessionPoint,
+                'point'   => $sessionPoint,
             ]);
         }
 
@@ -294,7 +316,8 @@ class CollectionSessionController extends Controller
             ->first();
 
         // Get collection points to display where they are at
-        $collectionPoints = CollectionPoint::where('barangay_id', $barangayId)
+        $collectionPoints = CollectionPoint::with('barangay')
+            ->where('barangay_id', $barangayId)
             ->where('is_active', true)
             ->get();
 
@@ -325,9 +348,87 @@ class CollectionSessionController extends Controller
     }
 
     /**
+     * Email all residents in a barangay when a collector starts their session.
+     * Sends an advance notice so residents can prepare their waste.
+     */
+    private function notifyResidentsSessionStarted(string $barangayId): void
+    {
+        $barangay     = Barangay::find($barangayId);
+        $barangayName = $barangay?->name ?? 'your Barangay';
+
+        // Get all active garbage points in this barangay
+        $points = GarbagePoint::where('barangay_id', $barangayId)
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('id');
+
+        // Fetch all active residents (role = 'user') registered in this barangay
+        $residents = User::where('barangay_id', $barangayId)
+            ->where('role', 'user')
+            ->where('is_active', true)
+            ->whereNotNull('email')
+            ->with(['pointAssignments' => function ($q) {
+                $q->where('is_active', true);
+            }])
+            ->get();
+
+        foreach ($residents as $resident) {
+            // Find which specific point this resident is assigned to (if any)
+            $assignedPointId = $resident->pointAssignments->first()?->garbage_point_id;
+            $point           = $points->get($assignedPointId);
+            $pointName       = $point?->name ?? 'your assigned collection point';
+
+            try {
+                Mail::to($resident->email, $resident->full_name)
+                    ->send(new TruckApproachingMail(
+                        residentName: $resident->full_name,
+                        pointName:    $pointName,
+                        etaMinutes:   30,  // general ETA when session just started
+                        barangayName: $barangayName,
+                    ));
+                Log::info("[TruckNotify] Session-start email sent to {$resident->email}");
+            } catch (\Exception $e) {
+                Log::error("[TruckNotify] Failed session-start email to {$resident->email}: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Email all residents assigned to a garbage point when the truck arrives.
+     */
+    private function notifyResidentsAtPoint(string $garbagePointId): void
+    {
+        $point    = GarbagePoint::with('barangay')->find($garbagePointId);
+        if (!$point) return;
+
+        $barangayName = $point->barangay?->name ?? 'your Barangay';
+
+        // Get all active residents assigned to this specific point who have email
+        $residents = User::whereHas('pointAssignments', function ($q) use ($garbagePointId) {
+            $q->where('garbage_point_id', $garbagePointId)
+              ->where('is_active', true);
+        })->whereNotNull('email')->get();
+
+        foreach ($residents as $resident) {
+            try {
+                Mail::to($resident->email, $resident->full_name)
+                    ->send(new WasteCollectedMail(
+                        residentName: $resident->full_name,
+                        pointName:    $point->name,
+                        barangayName: $barangayName,
+                    ));
+                Log::info("[TruckNotify] Collection confirmation email sent to {$resident->email} — {$point->name}");
+            } catch (\Exception $e) {
+                Log::error("[TruckNotify] Failed to email {$resident->email}: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
      * Private helper to seed default garbage points for Calarian / Baliwasan if none exist.
      */
     private function ensureGarbagePointsExist($barangayId)
+
     {
         if (GarbagePoint::where('barangay_id', $barangayId)->count() === 0) {
             $barangay = Barangay::find($barangayId) ?? Barangay::first();
