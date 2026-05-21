@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garbage Truck Approaching</title>
+    <title>Waste Collection Confirmed</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -22,7 +22,7 @@
         }
         /* Header */
         .header {
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
             padding: 40px 40px 32px;
             text-align: center;
         }
@@ -44,39 +44,27 @@
             margin-top: 6px;
             font-weight: 500;
         }
-        /* ETA Banner */
-        .eta-banner {
-            background: #f0fdf4;
-            border-top: 3px solid #16a34a;
-            border-bottom: 3px solid #16a34a;
-            padding: 28px 40px;
+        /* Status Banner */
+        .status-banner {
+            background: #ecfdf5;
+            border-top: 3px solid #10b981;
+            border-bottom: 3px solid #10b981;
+            padding: 24px 40px;
             text-align: center;
         }
-        .eta-label {
+        .status-label {
             font-size: 11px;
             font-weight: 800;
-            color: #16a34a;
+            color: #059669;
             letter-spacing: 2px;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
-        .eta-value {
-            font-size: 52px;
+        .status-value {
+            font-size: 32px;
             font-weight: 900;
-            color: #15803d;
-            line-height: 1;
-        }
-        .eta-unit {
-            font-size: 18px;
-            font-weight: 700;
-            color: #16a34a;
-            margin-left: 4px;
-        }
-        .eta-sub {
-            font-size: 13px;
-            color: #4ade80;
-            font-weight: 600;
-            margin-top: 6px;
+            color: #047857;
+            line-height: 1.2;
         }
         /* Body */
         .body {
@@ -133,56 +121,26 @@
             color: #1e293b;
             margin-top: 2px;
         }
-        /* CTA */
-        .cta-box {
+        /* Eco Points Callout */
+        .points-box {
             background: linear-gradient(135deg, #f0fdf4, #dcfce7);
             border: 1px solid #bbf7d0;
             border-radius: 12px;
             padding: 20px 24px;
             margin-top: 24px;
         }
-        .cta-box p {
+        .points-box p {
             font-size: 13px;
             color: #15803d;
             font-weight: 600;
             line-height: 1.6;
         }
-        .cta-box strong {
+        .points-box strong {
             display: block;
             font-size: 14px;
             font-weight: 800;
             color: #14532d;
             margin-bottom: 6px;
-        }
-        /* Steps */
-        .steps {
-            margin: 24px 0;
-        }
-        .step {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            margin-bottom: 14px;
-        }
-        .step-num {
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            background: #16a34a;
-            color: #fff;
-            font-size: 12px;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .step-text {
-            font-size: 13px;
-            color: #475569;
-            font-weight: 500;
-            line-height: 1.5;
-            margin-top: 4px;
         }
         /* Footer */
         .footer {
@@ -194,7 +152,7 @@
         .footer-logo {
             font-size: 16px;
             font-weight: 900;
-            color: #16a34a;
+            color: #10b981;
             margin-bottom: 8px;
         }
         .footer p {
@@ -214,25 +172,15 @@
 
         <!-- Header -->
         <div class="header">
-            <span class="header-icon">🚛</span>
-            <h1>Garbage Truck Alert</h1>
+            <span class="header-icon">✅</span>
+            <h1>Collection Confirmed</h1>
             <p>LimpioZambo · Waste Management System</p>
         </div>
 
-        <!-- ETA Banner -->
-        <div class="eta-banner" style="{{ $etaMinutes === 0 ? 'background: #f0fdf4; border-top: 3px solid #10b981; border-bottom: 3px solid #10b981;' : '' }}">
-            @if($etaMinutes === 0)
-                <div class="eta-label" style="color: #10b981;">Status</div>
-                <div class="eta-value" style="color: #15803d; font-size: 40px; letter-spacing: -0.5px;">ARRIVED</div>
-                <div class="eta-sub" style="color: #16a34a;">The truck is now at your collection point!</div>
-            @else
-                <div class="eta-label">Estimated Time of Arrival</div>
-                <div>
-                    <span class="eta-value">{{ $etaMinutes }}</span>
-                    <span class="eta-unit">min{{ $etaMinutes !== 1 ? 's' : '' }}</span>
-                </div>
-                <div class="eta-sub">The truck is on its way — prepare now!</div>
-            @endif
+        <!-- Status Banner -->
+        <div class="status-banner">
+            <div class="status-label">Collection Status</div>
+            <div class="status-value">SUCCESSFULLY COLLECTED</div>
         </div>
 
         <!-- Body -->
@@ -240,13 +188,7 @@
             <p class="greeting">Hi {{ $residentName }},</p>
 
             <p class="message">
-                @if($etaMinutes === 0)
-                    Great news! The garbage collection truck has arrived at your collection point (<strong>{{ $pointName }}</strong>). Please bring your segregated waste out immediately for collection.
-                @else
-                    Great news! A garbage collection truck is heading to your collection point
-                    and will arrive in approximately <strong>{{ $etaMinutes }} minute{{ $etaMinutes !== 1 ? 's' : '' }}</strong>.
-                    Please make sure your waste is ready for pickup.
-                @endif
+                We're happy to inform you that the garbage collection truck has successfully completed its pickup at your assigned collection point (<strong>{{ $pointName }}</strong>).
             </p>
 
             <!-- Info Card -->
@@ -266,48 +208,24 @@
                     </div>
                 </div>
                 <div class="info-row">
-                    <span class="info-icon">⏱️</span>
-                    <div>
-                        <div class="info-label">ETA</div>
-                        <div class="info-value">{{ $etaMinutes }} minute{{ $etaMinutes !== 1 ? 's' : '' }} from now</div>
-                    </div>
-                </div>
-                <div class="info-row">
                     <span class="info-icon">🕐</span>
                     <div>
-                        <div class="info-label">Notified At</div>
+                        <div class="info-label">Collected At</div>
                         <div class="info-value">{{ now()->setTimezone('Asia/Manila')->format('M d, Y — h:i A') }} (PHT)</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Steps -->
-            <p style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:14px;">Here's what to do:</p>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-num">1</div>
-                    <div class="step-text">Bring your segregated waste bags to <strong>{{ $pointName }}</strong>.</div>
-                </div>
-                <div class="step">
-                    <div class="step-num">2</div>
-                    <div class="step-text">Ensure waste is properly sorted — <strong>Biodegradable</strong> (green bag), <strong>Non-Biodegradable</strong> (blue bag), and <strong>Residual</strong> (black bag).</div>
-                </div>
-                <div class="step">
-                    <div class="step-num">3</div>
-                    <div class="step-text">Wait near the point for the truck to arrive within the estimated time.</div>
-                </div>
-            </div>
-
-            <!-- CTA -->
-            <div class="cta-box">
-                <strong>♻️ Eco-Points Reminder</strong>
-                <p>Proper waste segregation earns you Eco-Points in the LimpioZambo app. Keep it up and help keep Zamboanga City clean!</p>
+            <!-- Eco Points Callout -->
+            <div class="points-box">
+                <strong>♻️ Eco-Points Updated</strong>
+                <p>Thank you for participating in our waste management initiative and segregating your trash properly. Any Eco-Points gained from this collection session have been added to your profile.</p>
             </div>
 
             <div class="divider"></div>
 
             <p class="message" style="font-size:13px;color:#94a3b8;">
-                This is an automated notification from the LimpioZambo Waste Management System. If you believe you received this in error, please disregard.
+                This is an automated notification from the LimpioZambo Waste Management System.
             </p>
         </div>
 

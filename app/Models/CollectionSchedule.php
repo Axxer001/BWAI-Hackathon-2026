@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class CollectionSchedule extends Model
 {
@@ -16,6 +17,8 @@ class CollectionSchedule extends Model
         'day_of_week',
         'collection_time',
         'frequency',
+        'default_truck_id',
+        'default_collector_id',
         'is_active',
     ];
 
@@ -26,5 +29,20 @@ class CollectionSchedule extends Model
     public function barangay(): BelongsTo
     {
         return $this->belongsTo(Barangay::class);
+    }
+
+    public function truck(): BelongsTo
+    {
+        return $this->belongsTo(Truck::class, 'default_truck_id');
+    }
+
+    public function collector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'default_collector_id');
+    }
+
+    public function collectionPoints(): BelongsToMany
+    {
+        return $this->belongsToMany(CollectionPoint::class, 'collection_point_schedule', 'schedule_id', 'collection_point_id');
     }
 }

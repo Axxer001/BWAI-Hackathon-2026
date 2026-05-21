@@ -38,7 +38,9 @@ class TruckApproachingMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '🚛 Garbage Truck Approaching — ' . $this->pointName,
+            subject: $this->etaMinutes === 0
+                ? '🚛 Garbage Truck is NOW at your Collection Point — ' . $this->pointName
+                : '🚛 Garbage Truck Approaching in ' . $this->etaMinutes . ' min — ' . $this->pointName,
         );
     }
 

@@ -176,6 +176,8 @@
         </div>
     </div>
 
+    @stack('modals')
+
     {{-- ═══════════ SCRIPT LOGIC ═══════════ --}}
     <script>
         document.addEventListener('DOMContentLoaded', () => {

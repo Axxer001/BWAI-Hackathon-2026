@@ -14,6 +14,7 @@ class CollectionSession extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'barangay_id',
         'schedule_id',
         'collector_id',
         'truck_id',
@@ -66,6 +67,12 @@ class CollectionSession extends Model
     {
         return $this->hasMany(SessionPoint::class, 'session_id')->orderBy('route_order');
     }
+
+    public function truck()
+    {
+        return $this->belongsTo(Truck::class, 'truck_id');
+    }
+
 
     public function nextPendingPoint(): ?SessionPoint
     {

@@ -34,17 +34,29 @@ Route::group(['prefix' => 'auth', 'as' => 'auth.'], function () {
 Route::get('/dashboard/points-map', function () {
     $user = auth()->user();
 
-    // 1. Get user's assigned point, or fallback to the first point in their barangay
-    $collectionPoint = $user->collectionPoint ?? \App\Models\CollectionPoint::where('barangay_id', $user->barangay_id)->first();
+    // 1. Get user's active assigned point from the relationship
+    $collectionPoint = $user->garbagePoints()->wherePivot('is_active', true)->first();
 
-    // 2. Check if a garbage truck is currently on route in their barangay
-    // Find an ongoing session where the assigned collector belongs to the user's barangay
-    $activeSession = \App\Models\CollectionSession::whereHas('collector', function ($query) use ($user) {
-        $query->where('barangay_id', $user->barangay_id);
-    })
+    // 2. Get all active garbage points in their barangay for selection
+    $barangayPoints = \App\Models\GarbagePoint::where('barangay_id', $user->barangay_id)
+        ->where('is_active', true)
+        ->get();
+
+    // 3. Check if a garbage truck is currently on route in their barangay
+    $activeSession = \App\Models\CollectionSession::where('barangay_id', $user->barangay_id)
         ->where('status', 'ongoing')
         ->first();
-    // 3. Get today's collection schedule
+
+    // 4. Load session points if there is an active collection session
+    $sessionPoints = collect();
+    if ($activeSession) {
+        $sessionPoints = \App\Models\SessionPoint::where('session_id', $activeSession->id)
+            ->with('garbagePoint')
+            ->orderBy('route_order')
+            ->get();
+    }
+
+    // 5. Get today's collection schedule
     $today = strtolower(now()->format('l')); // e.g., 'monday'
     $todaySchedule = \App\Models\CollectionSchedule::where('barangay_id', $user->barangay_id)
         ->where('day_of_week', $today)
@@ -53,10 +65,41 @@ Route::get('/dashboard/points-map', function () {
 
     return view('dashboard.partials.user.my-collection-point', compact(
         'collectionPoint',
+        'barangayPoints',
         'activeSession',
+        'sessionPoints',
         'todaySchedule'
     ));
 })->middleware('auth')->name('dashboard.points-map');
+
+Route::post('/dashboard/assign-collection-point', function (Illuminate\Http\Request $request) {
+    $request->validate([
+        'garbage_point_id' => 'required|uuid|exists:garbage_points,id',
+    ]);
+
+    $user = auth()->user();
+
+    // Deactivate existing assignments
+    \App\Models\UserPointAssignment::where('user_id', $user->id)
+        ->update(['is_active' => false]);
+
+    // Create or reactivate the selected point assignment
+    \App\Models\UserPointAssignment::updateOrCreate(
+        ['user_id' => $user->id, 'garbage_point_id' => $request->garbage_point_id],
+        ['is_active' => true, 'assigned_at' => now()]
+    );
+
+    return redirect()->back()->with('success', 'Collection point assigned successfully!');
+})->middleware('auth')->name('dashboard.assign-point');
+
+Route::post('/dashboard/change-collection-point', function () {
+    $user = auth()->user();
+
+    \App\Models\UserPointAssignment::where('user_id', $user->id)
+        ->update(['is_active' => false]);
+
+    return redirect()->back()->with('success', 'Please choose a new collection point from the map.');
+})->middleware('auth')->name('dashboard.change-point');
 
 // Dashboard Routing Group (Protected by Auth)
 Route::middleware('auth')->group(function () {
@@ -150,49 +193,70 @@ Route::get('/dashboard', function () {
 
 // ─── BARANGAY ROUTES ─────────────────────────────────────────────────
 
+// ─── BARANGAY ROUTES ─────────────────────────────────────────────────
+
 Route::get('/dashboard/schedules', function () {
     $barangayId = auth()->user()->barangay_id;
 
-    // 1. Get the schedules
-    $schedules = \App\Models\CollectionSchedule::where('barangay_id', $barangayId)->get();
+    // 1. Get the schedules and load their relationships (trucks, collectors, points)
+    $schedules = \App\Models\CollectionSchedule::with(['truck', 'collector', 'collectionPoints'])
+        ->where('barangay_id', $barangayId)
+        ->get();
 
-    // 2. Calculate Active Routes (Count of schedules that are active)
-    $activeRoutes = \App\Models\CollectionSchedule::where('barangay_id', $barangayId)
-        ->where('is_active', true)
-        ->count();
-
-    // 3. Calculate Assigned Personnel (Count of collectors in this barangay)
+    // 2. Calculate Stats
+    $activeRoutes = $schedules->where('is_active', true)->count();
     $assignedPersonnel = \App\Models\User::where('barangay_id', $barangayId)
         ->where('role', 'collector')
         ->count();
 
-    // 4. Pass ALL variables to the view
-    return view('dashboard.partials.barangay.schedules', compact('schedules', 'activeRoutes', 'assignedPersonnel'));
+    // 3. Fetch data for the form dropdowns
+    $trucks = \App\Models\Truck::where('barangay_id', $barangayId)->where('is_active', true)->get();
+    $collectors = \App\Models\User::where('barangay_id', $barangayId)->where('role', 'collector')->get();
+    $collectionPoints = \App\Models\CollectionPoint::where('barangay_id', $barangayId)->where('is_active', true)->get();
+
+    // 4. Pass EVERYTHING to the view
+    return view('dashboard.partials.barangay.schedules', compact(
+        'schedules',
+        'activeRoutes',
+        'assignedPersonnel',
+        'trucks',
+        'collectors',
+        'collectionPoints'
+    ));
 })->middleware('auth')->name('dashboard.schedules');
 
-
-// Route::get('/dashboard/schedules', function () {
-//     $barangayId = auth()->user()->barangay_id;
-//     $schedules = \App\Models\CollectionSchedule::where('barangay_id', $barangayId)->get();
-//     return view('dashboard.partials.barangay.schedules', compact('schedules'));
-// })->name('dashboard.schedules');
-
 Route::post('/dashboard/schedules', function (\Illuminate\Http\Request $request) {
+    // 1. Validate the new form array data
     $request->validate([
-        'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+        'days_of_week' => 'required|array',
+        'days_of_week.*' => 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
         'collection_time' => 'required',
-        'frequency' => 'required|in:daily,weekly,bi-weekly',
+        'frequency' => 'required|in:daily,weekly,bi-weekly,monthly', // Added 'monthly'
+        'default_truck_id' => 'nullable|exists:trucks,id',
+        'default_collector_id' => 'nullable|exists:users,id',
+        'collection_points' => 'required|array', // Validates the dropdown
+        'collection_points.*' => 'exists:collection_points,id'
     ]);
 
-    \App\Models\CollectionSchedule::create([
-        'barangay_id' => auth()->user()->barangay_id,
-        'day_of_week' => $request->day_of_week,
-        'collection_time' => $request->collection_time,
-        'frequency' => $request->frequency,
-        'is_active' => true,
-    ]);
+    // 2. Loop through selected days and create a separate database row for each
+    foreach ($request->days_of_week as $day) {
+        $schedule = \App\Models\CollectionSchedule::create([
+            'barangay_id' => auth()->user()->barangay_id,
+            'day_of_week' => $day,
+            'collection_time' => $request->collection_time,
+            'frequency' => $request->frequency,
+            'default_truck_id' => $request->default_truck_id,
+            'default_collector_id' => $request->default_collector_id,
+            'is_active' => true,
+        ]);
 
-    return redirect()->back()->with('success', 'Collection schedule added successfully!');
+        // 3. Attach the collection points to the pivot table
+        if ($request->has('collection_points')) {
+            $schedule->collectionPoints()->attach($request->collection_points);
+        }
+    }
+
+    return redirect()->back()->with('success', 'Collection schedules saved and activated successfully!');
 })->middleware('auth')->name('dashboard.schedules.store');
 
 Route::post('/dashboard/schedules/{id}/toggle', function ($id) {
