@@ -442,9 +442,11 @@ Route::get('/admin/overview', function () {
     $totalEcoPoints = \DB::table('eco_points_transactions')->sum('points');
     $totalWaste = \App\Models\CollectionReport::sum('completed_points') * 0.1;
     $totalTrucks = \App\Models\Truck::count();
+    $totalAiScans = \App\Models\WasteScan::count();
+    $totalGarbageCollected = \App\Models\SessionPoint::where('status', 'collected')->count();
     $barangays = \App\Models\Barangay::withCount(['users', 'trucks', 'collectionPoints'])->get();
 
-    return view('dashboard.partials.admin.overview', compact('totalBarangays', 'totalEcoPoints', 'totalWaste', 'totalTrucks', 'barangays'));
+    return view('dashboard.partials.admin.overview', compact('totalBarangays', 'totalEcoPoints', 'totalWaste', 'totalTrucks', 'totalAiScans', 'totalGarbageCollected', 'barangays'));
 })->name('admin.overview');
 
 Route::get('/admin/users', function (\Illuminate\Http\Request $request) {
@@ -531,6 +533,8 @@ Route::get('/admin/analytics', function () {
     $totalEcoPoints = \DB::table('eco_points_transactions')->sum('points');
     $totalWaste = \App\Models\CollectionReport::sum('completed_points') * 0.1;
     $totalViolations = \App\Models\ViolationReport::where('status', 'pending')->count();
+    $totalAiScans = \App\Models\WasteScan::count();
+    $totalGarbageCollected = \App\Models\SessionPoint::where('status', 'collected')->count();
     $barangays = \App\Models\Barangay::all()->map(function ($b) {
         $sessions = \App\Models\CollectionSession::where('barangay_id', $b->id)->pluck('id');
         $reports = \App\Models\CollectionReport::whereIn('session_id', $sessions)->get();
@@ -544,7 +548,7 @@ Route::get('/admin/analytics', function () {
             : 0;
         return $b;
     });
-    return view('dashboard.partials.admin.analytics', compact('totalEcoPoints', 'totalWaste', 'totalViolations', 'barangays'));
+    return view('dashboard.partials.admin.analytics', compact('totalEcoPoints', 'totalWaste', 'totalViolations', 'totalAiScans', 'totalGarbageCollected', 'barangays'));
 })->name('admin.analytics');
 
 Route::get('/admin/analytics/download', function () {

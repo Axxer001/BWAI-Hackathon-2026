@@ -18,11 +18,11 @@
     </div>
 
     {{-- Top-level city stats --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-slideUp" style="animation-delay: 0.05s;">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8 animate-slideUp" style="animation-delay: 0.05s;">
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">System Eco-Points</p>
             <div class="flex items-baseline gap-1.5">
-                <span class="text-4xl font-extrabold text-emerald-600 tracking-tight">{{ number_format($totalEcoPoints) }}</span>
+                <span class="text-3xl font-extrabold text-emerald-600 tracking-tight">{{ number_format($totalEcoPoints) }}</span>
                 <span class="text-xs text-slate-400 font-bold">pts</span>
             </div>
             <p class="text-[10px] text-emerald-600 font-bold mt-2">Circulating across all users</p>
@@ -31,16 +31,34 @@
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Total Waste Processed</p>
             <div class="flex items-baseline gap-1.5">
-                <span class="text-4xl font-extrabold text-slate-900 tracking-tight">{{ number_format($totalWaste, 1) }}</span>
+                <span class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ number_format($totalWaste, 1) }}</span>
                 <span class="text-xs text-slate-400 font-bold">Tons</span>
             </div>
             <p class="text-[10px] text-slate-400 font-bold mt-2">Estimated from session reports</p>
         </div>
 
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">AI Waste Scans</p>
+            <div class="flex items-baseline gap-1.5">
+                <span class="text-3xl font-extrabold text-blue-600 tracking-tight">{{ number_format($totalAiScans) }}</span>
+                <span class="text-xs text-slate-400 font-bold">scans</span>
+            </div>
+            <p class="text-[10px] text-blue-500 font-bold mt-2">Total user classifications</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Completed Pickups</p>
+            <div class="flex items-baseline gap-1.5">
+                <span class="text-3xl font-extrabold text-indigo-600 tracking-tight">{{ number_format($totalGarbageCollected) }}</span>
+                <span class="text-xs text-slate-400 font-bold">points</span>
+            </div>
+            <p class="text-[10px] text-indigo-500 font-bold mt-2">Total points collected</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Open Violations</p>
             <div class="flex items-baseline gap-1.5">
-                <span class="text-4xl font-extrabold text-red-600 tracking-tight">{{ $totalViolations }}</span>
+                <span class="text-3xl font-extrabold text-red-600 tracking-tight">{{ $totalViolations }}</span>
                 <span class="text-xs text-slate-400 font-bold">reports</span>
             </div>
             <p class="text-[10px] text-red-500 font-bold mt-2">Pending barangay action</p>

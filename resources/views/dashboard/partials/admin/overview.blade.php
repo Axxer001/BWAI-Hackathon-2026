@@ -9,7 +9,7 @@
     </div>
 
     {{-- Global stats grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slideUp" style="animation-delay: 0.05s;">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 animate-slideUp" style="animation-delay: 0.05s;">
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total Waste Collected</p>
             <div class="flex items-baseline gap-1">
@@ -29,6 +29,28 @@
             </div>
             <div class="w-full bg-slate-100 h-1 mt-4 rounded-full overflow-hidden">
                 <div class="bg-emerald-600 h-full rounded-full" style="width: 85%"></div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">AI Waste Scans</p>
+            <div class="flex items-baseline gap-1">
+                <h2 class="text-3xl font-extrabold text-blue-600 tracking-tight">{{ number_format($totalAiScans) }}</h2>
+                <span class="text-xs font-bold text-blue-400">scans</span>
+            </div>
+            <div class="w-full bg-slate-100 h-1 mt-4 rounded-full overflow-hidden">
+                <div class="bg-blue-600 h-full rounded-full" style="width: 60%"></div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Completed Pickups</p>
+            <div class="flex items-baseline gap-1">
+                <h2 class="text-3xl font-extrabold text-rose-600 tracking-tight">{{ number_format($totalGarbageCollected) }}</h2>
+                <span class="text-xs font-bold text-rose-400">checkpoints</span>
+            </div>
+            <div class="w-full bg-slate-100 h-1 mt-4 rounded-full overflow-hidden">
+                <div class="bg-rose-600 h-full rounded-full" style="width: 80%"></div>
             </div>
         </div>
 
