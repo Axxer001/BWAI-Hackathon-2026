@@ -82,7 +82,7 @@ class WasteAssessmentController extends Controller
                 'contents' => [
                     [
                         'parts' => [
-                            ['text' => "Analyze this image of waste. Return a JSON object with strictly these keys: 'name' (a short descriptive name of the waste), 'category' (strictly 'Biodegradable', 'Non-Biodegradable', 'Recyclable' or 'Special Waste'), and 'preparation_advice' (concise advice on how to prepare/segregate this for garbage collectors). Do not include markdown formatting like ```json in the output."],
+                            ['text' => "Analyze this image of waste. Return a JSON object with strictly these keys: 'name' (a short descriptive name of the waste), 'category' (strictly 'Biodegradable', 'Non-Biodegradable', 'Recyclable' or 'Special Waste'), and 'preparation_advice' (step-by-step paragraph form) advice on how to prepare/segregate this for garbage collectors). Do not include markdown formatting like ```json in the output."],
                             [
                                 'inline_data' => [
                                     'mime_type' => $mimeType,

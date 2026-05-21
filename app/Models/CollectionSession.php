@@ -14,6 +14,7 @@ class CollectionSession extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'barangay_id',
         'schedule_id',
         'collector_id',
         'truck_id',

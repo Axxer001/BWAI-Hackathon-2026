@@ -50,10 +50,10 @@
         <div class="absolute inset-0 bg-gradient-to-b from-blue-900/20 to-green-900/10 pointer-events-none"></div>
 
         <div class="relative h-[76px] flex items-center justify-between px-6 border-b border-white/10">
-            <a href="/" class="flex items-center gap-2 text-xl font-extrabold text-white no-underline tracking-tight">
-                <div class="w-8 h-8 bg-green-600 rounded-[10px] flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-600/30">
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                        <path d="M10 3L13 8.5H17.5L13.8 11.5L15.5 17L10 13.8L4.5 17L6.2 11.5L2.5 8.5H7L10 3Z" fill="white"/>
+            <a href="/" class="flex items-center text-xl font-extrabold text-white no-underline tracking-tight">
+                <div class="w-8 h-8 bg-green-600 mr-2 rounded-[10px] flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-600/30">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
                     </svg>
                 </div>
                 Limpio<span class="text-green-500">Zambo</span>
@@ -100,11 +100,20 @@
     {{-- ═══════════ MAIN CONTENT AREA ═══════════ --}}
     <div class="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50/50 font-poppins">
         
-        <header class="h-[76px] bg-white border-b border-slate-200 flex items-center justify-between md:justify-end px-4 md:px-8 flex-shrink-0 z-10">
+        <header class="h-[76px] bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 flex-shrink-0 z-10">
             
-            <button id="open-sidebar" class="md:hidden p-2 -ml-2 text-slate-500 hover:text-green-600 transition-colors rounded-lg">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-            </button>
+            <div class="flex items-center gap-4">
+                <button id="open-sidebar" class="md:hidden p-2 -ml-2 text-slate-500 hover:text-green-600 transition-colors rounded-lg">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+
+                @if(Auth::check() && strtolower(Auth::user()->role) === 'barangay')
+                    <div class="flex flex-col justify-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none ">This is</span>
+                        <span class="text-lg md:text-xl font-extrabold text-slate-900 leading-none">{{ Auth::user()->barangay->name ?? 'Barangay' }} Dashboard</span>
+                    </div>
+                @endif
+            </div>
 
             <div class="flex items-center gap-4 md:gap-6">
                 <button class="relative text-slate-400 hover:text-slate-600 transition-colors">
