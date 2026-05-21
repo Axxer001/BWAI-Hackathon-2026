@@ -71,7 +71,7 @@
             Garbage collection,<br><em class="not-italic text-green-600">finally connected.</em>
         </h1>
         <p class="text-lg text-slate-500 max-w-[480px] leading-[1.7] mb-9">
-            LimpioZambo digitizes City Ordinance No. 500 — giving residents real-time collection alerts, drivers a live route tracker, and barangays full oversight.
+            LimpioZambo digitizes City Ordinance No. 518 — giving residents real-time collection alerts, drivers a live route tracker, and barangays full oversight.
         </p>
         <div class="flex gap-3 flex-wrap">
             <a href="{{ route('auth.register') }}" class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-base font-bold text-white bg-green-600 hover:bg-green-700 hover:-translate-y-0.5 shadow-md transition-all">
