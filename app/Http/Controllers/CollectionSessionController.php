@@ -36,10 +36,9 @@ class CollectionSessionController extends Controller
             ->where('is_active', true)
             ->get();
 
-        // 3. Fetch today's schedule for the barangay
         $today = strtolower(now()->format('l')); // e.g., 'monday'
         $todaySchedule = CollectionSchedule::where('barangay_id', $user->barangay_id)
-            ->where('day_of_week', $today)
+            ->where(fn($q) => $q->where('day_of_week', $today)->orWhere('day_of_week', 'everyday'))
             ->where('is_active', true)
             ->first();
             
@@ -180,22 +179,32 @@ class CollectionSessionController extends Controller
      */
     private function getCollectionScheduleForBarangay($barangayId)
     {
+        $today = strtolower(now()->format('l'));
         $schedule = CollectionSchedule::where('barangay_id', $barangayId)
             ->where('is_active', true)
+            ->where(fn($q) => $q->where('day_of_week', $today)->orWhere('day_of_week', 'everyday'))
             ->orderBy('collection_time')
             ->first();
+
+        if (!$schedule) {
+            $schedule = CollectionSchedule::where('barangay_id', $barangayId)
+                ->where('is_active', true)
+                ->orderBy('collection_time')
+                ->first();
+        }
 
         if (!$schedule) {
             $schedule = CollectionSchedule::where('barangay_id', $barangayId)
                 ->orderBy('collection_time')
                 ->first();
         }
+
         $this->ensureTrucksExist($barangayId);
 
         if (!$schedule) {
             $schedule = CollectionSchedule::create([
                 'barangay_id' => $barangayId,
-                'day_of_week' => strtolower(now()->format('l')),
+                'day_of_week' => 'everyday',
                 'collection_time' => '08:00',
                 'frequency' => 'daily',
                 'is_active' => true,

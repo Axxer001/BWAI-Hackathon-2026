@@ -59,23 +59,60 @@ class BarangayDashboardTest extends TestCase
         $response->assertViewIs('dashboard.partials.barangay.schedules');
     }
 
-    /**
-     * Test storing a collection schedule.
-     */
     public function test_store_collection_schedule()
     {
+        $point = \App\Models\CollectionPoint::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'barangay_id' => $this->barangay->id,
+            'name' => 'Calarian Center',
+            'latitude' => 6.92,
+            'longitude' => 122.03,
+            'address' => 'Plaza',
+        ]);
+
         $response = $this->actingAs($this->user)->post('/dashboard/schedules', [
+            'name' => 'Morning Commercial Route',
+            'days_of_week' => ['monday'],
+            'collection_time' => '08:00',
+            'frequency' => 'weekly',
+            'collection_points' => [$point->id],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('collection_schedules', [
+            'name' => 'Morning Commercial Route',
+            'day_of_week' => 'monday',
+            'frequency' => 'weekly',
+            'barangay_id' => $this->barangay->id,
+        ]);
+    }
+
+    public function test_bulk_delete_schedules()
+    {
+        $sched1 = CollectionSchedule::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'barangay_id' => $this->barangay->id,
             'day_of_week' => 'monday',
             'collection_time' => '08:00',
             'frequency' => 'weekly',
         ]);
 
-        $response->assertRedirect();
-        $this->assertDatabaseHas('collection_schedules', [
-            'day_of_week' => 'monday',
-            'frequency' => 'weekly',
+        $sched2 = CollectionSchedule::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
             'barangay_id' => $this->barangay->id,
+            'day_of_week' => 'tuesday',
+            'collection_time' => '09:00',
+            'frequency' => 'weekly',
         ]);
+
+        $this->assertEquals(2, CollectionSchedule::count());
+
+        $response = $this->actingAs($this->user)->post('/dashboard/schedules/bulk-delete', [
+            'ids' => [$sched1->id, $sched2->id],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals(0, CollectionSchedule::count());
     }
 
     /**

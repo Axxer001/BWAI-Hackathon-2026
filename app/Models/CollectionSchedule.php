@@ -13,6 +13,7 @@ class CollectionSchedule extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'name',
         'barangay_id',
         'day_of_week',
         'collection_time',

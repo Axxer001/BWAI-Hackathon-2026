@@ -3,6 +3,10 @@
 @section('title', 'Route Schedules')
 
 @section('content')
+    {{-- Leaflet for the View Route modal map --}}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <div class="mb-8 animate-slideUp">
         <h1 class="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Route Schedules</h1> 
         <p class="text-sm text-slate-500">Manage and monitor daily garbage collection routes for your Barangay.</p>
@@ -47,6 +51,15 @@
                             Schedule Timing
                         </h4>
 
+                        {{-- Route Name --}}
+                        <div>
+                            <label class="block">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">Route / Schedule Name</span>
+                                <input type="text" name="name" placeholder="e.g., Calarian Morning Commercial Run"
+                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-amber-300 focus:bg-white transition-all" />
+                            </label>
+                        </div>
+
                         {{-- Frequency --}}
                         <div>
                             <label class="block">
@@ -83,13 +96,15 @@
                             </label>
                         </div>
 
-                        {{-- Divider --}}
-                        <div class="pt-2">
-                            <h4 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                                <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px]">2</span>
-                                Assigned Assets
-                            </h4>
-                        </div>
+
+                    </div>
+
+                    {{-- ── RIGHT COLUMN: Assets & Checkpoints ── --}}
+                    <div class="space-y-6">
+                        <h4 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
+                            <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px]">2</span>
+                            Assigned Assets & Checkpoints
+                        </h4>
 
                         {{-- Truck --}}
                         <div>
@@ -118,14 +133,6 @@
                                 </select>
                             </label>
                         </div>
-                    </div>
-
-                    {{-- ── RIGHT COLUMN: Route Checkpoints ── --}}
-                    <div class="space-y-6">
-                        <h4 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px]">3</span>
-                            Route Checkpoints
-                        </h4>
 
                         <div>
                             <span class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">
@@ -233,89 +240,130 @@
     {{-- ── TABLE SECTION ── --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm animate-slideUp overflow-hidden" style="animation-delay: 0.2s;">
         <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-            <h3 class="font-bold text-slate-800">Weekly Route Masterlist</h3>
-            <span class="text-xs font-semibold bg-white border border-slate-200 text-slate-500 px-3 py-1 rounded-lg shadow-sm">
-                {{ $schedules->count() }} Schedules
-            </span>
+            <div class="flex items-center gap-3">
+                <h3 class="font-bold text-slate-800">Weekly Route Masterlist</h3>
+                <span class="text-xs font-semibold bg-white border border-slate-200 text-slate-500 px-3 py-1 rounded-lg shadow-sm">
+                    {{ $schedules->count() }} Schedules
+                </span>
+            </div>
+
+            {{-- Bulk Delete Action Button --}}
+            <div id="bulk-delete-action" class="hidden animate-slideUp">
+                <button type="submit" form="bulk-delete-form" onclick="return confirm('Are you sure you want to delete all selected schedules? This cannot be undone.');" 
+                    class="text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-800 px-4 py-2 rounded-lg border border-rose-200 shadow-sm transition-all flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Selected (<span id="bulk-count">0</span>)
+                </button>
+            </div>
         </div>
 
         <div class="p-0 overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-white border-b border-slate-100 text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                        <th class="px-6 py-4">Day & Time</th>
-                        <th class="px-6 py-4">Assigned Assets</th>
-                        <th class="px-6 py-4">Checkpoints</th>
-                        <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-slate-600 font-medium">
-                    @forelse($schedules as $sched)
-                        <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="px-6 py-4">
-                                <p class="font-bold text-slate-900 capitalize text-sm">{{ $sched->day_of_week }}</p>
-                                <p class="text-xs text-slate-500 mt-0.5 font-medium">
-                                    {{ date('h:i A', strtotime($sched->collection_time)) }}
-                                    &middot; {{ ucfirst(str_replace('-', ' ', $sched->frequency)) }}
-                                </p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex flex-col gap-1">
-                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
-                                        {{ $sched->truck->plate_number ?? 'No truck' }}
-                                    </span>
-                                    <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                        {{ $sched->collector->full_name ?? 'No collector' }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200 shadow-sm">
-                                    {{ $sched->collectionPoints->count() }} Points
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                @if($sched->is_active)
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider">Active</span>
-                                @else
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">Paused</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="#" class="text-xs text-blue-600 hover:text-blue-800 font-bold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors border border-blue-200 shadow-sm">View</a>
-                                    <form method="POST" action="{{ route('dashboard.schedules.toggle', $sched->id) }}">
-                                        @csrf
-                                        <button type="submit" class="text-xs text-slate-600 hover:text-slate-800 font-bold bg-white hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200 shadow-sm">
-                                            {{ $sched->is_active ? 'Pause' : 'Resume' }}
-                                        </button>
-                                    </form>
-                                    <form method="POST" action="{{ route('dashboard.schedules.delete', $sched->id) }}" onsubmit="return confirm('Delete this schedule?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-xs text-rose-600 hover:text-rose-800 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors border border-rose-200 shadow-sm">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
+            <form id="bulk-delete-form" method="POST" action="{{ route('dashboard.schedules.bulk-delete') }}">
+                @csrf
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-white border-b border-slate-100 text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                            <th class="px-6 py-4 w-12 text-center">
+                                <input type="checkbox" id="select-all-schedules" class="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500 cursor-pointer">
+                            </th>
+                            <th class="px-6 py-4">Route Name / Timing</th>
+                            <th class="px-6 py-4">Assigned Assets</th>
+                            <th class="px-6 py-4">Checkpoints</th>
+                            <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4 text-right">Actions</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center justify-center">
-                                    <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                                        <svg class="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-600 font-medium">
+                        @forelse($schedules as $sched)
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="px-6 py-4 text-center">
+                                    <input type="checkbox" name="ids[]" value="{{ $sched->id }}" class="schedule-checkbox w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500 cursor-pointer">
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if($sched->name)
+                                        <p class="font-extrabold text-slate-900 text-sm tracking-tight mb-1">{{ $sched->name }}</p>
+                                    @endif
+                                    <p class="font-bold text-slate-800 capitalize text-xs flex items-center gap-1.5">
+                                        @if(!$sched->name)
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                        @endif
+                                        {{ $sched->day_of_week === 'everyday' ? 'Every Day' : $sched->day_of_week }}
+                                    </p>
+                                    <p class="text-xs text-slate-500 mt-0.5 font-medium">
+                                        {{ date('h:i A', strtotime($sched->collection_time)) }}
+                                        &middot; {{ ucfirst(str_replace('-', ' ', $sched->frequency)) }}
+                                    </p>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
+                                            {{ $sched->truck->plate_number ?? 'No truck' }}
+                                        </span>
+                                        <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                            {{ $sched->collector->full_name ?? 'No collector' }}
+                                        </span>
                                     </div>
-                                    <p class="text-slate-500 text-sm font-semibold">No schedules defined yet.</p>
-                                    <p class="text-slate-400 text-xs mt-1">Create your first route using the form above.</p>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200 shadow-sm">
+                                        {{ $sched->collectionPoints->count() }} Points
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if($sched->is_active)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider">Active</span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">Paused</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button type="button"
+                                            onclick="openRouteModal(this)"
+                                            data-name="{{ $sched->name ?? ($sched->day_of_week === 'everyday' ? 'Every Day' : ucfirst($sched->day_of_week)) }}"
+                                            data-day="{{ $sched->day_of_week === 'everyday' ? 'Every Day' : ucfirst($sched->day_of_week) }}"
+                                            data-time="{{ date('h:i A', strtotime($sched->collection_time)) }}"
+                                            data-frequency="{{ ucfirst(str_replace('-', ' ', $sched->frequency)) }}"
+                                            data-truck="{{ $sched->truck->plate_number ?? 'Unassigned' }}"
+                                            data-collector="{{ $sched->collector->full_name ?? 'Unassigned' }}"
+                                            data-points='@json($sched->collectionPoints)'
+                                            class="text-xs text-blue-600 hover:text-blue-800 font-bold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors border border-blue-200 shadow-sm">
+                                            🗺️ View Route
+                                        </button>
+                                        <form method="POST" action="{{ route('dashboard.schedules.toggle', $sched->id) }}">
+                                            @csrf
+                                            <button type="submit" class="text-xs text-slate-600 hover:text-slate-800 font-bold bg-white hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200 shadow-sm">
+                                                {{ $sched->is_active ? 'Pause' : 'Resume' }}
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('dashboard.schedules.delete', $sched->id) }}" onsubmit="return confirm('Delete this schedule?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-xs text-rose-600 hover:text-rose-800 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors border border-rose-200 shadow-sm">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                            <svg class="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        </div>
+                                        <p class="text-slate-500 text-sm font-semibold">No schedules defined yet.</p>
+                                        <p class="text-slate-400 text-xs mt-1">Create your first route using the form above.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </form>
         </div>
     </div>
 
@@ -458,7 +506,212 @@
                 });
             }
 
+            // ── Bulk Delete Logic ──
+            const selectAllCheck = document.getElementById('select-all-schedules');
+            const schedCheckboxes = document.querySelectorAll('.schedule-checkbox');
+            const bulkActionDiv = document.getElementById('bulk-delete-action');
+            const bulkCountSpan = document.getElementById('bulk-count');
+
+            function syncBulkDeleteUI() {
+                if (!selectAllCheck) return;
+                const checkedCount = document.querySelectorAll('.schedule-checkbox:checked').length;
+                if (checkedCount > 0) {
+                    bulkActionDiv.classList.remove('hidden');
+                    bulkCountSpan.textContent = checkedCount;
+                } else {
+                    bulkActionDiv.classList.add('hidden');
+                }
+                
+                // Keep select all state updated
+                selectAllCheck.checked = checkedCount === schedCheckboxes.length && schedCheckboxes.length > 0;
+                selectAllCheck.indeterminate = checkedCount > 0 && checkedCount < schedCheckboxes.length;
+            }
+
+            if (selectAllCheck) {
+                selectAllCheck.addEventListener('change', function () {
+                    const isChecked = this.checked;
+                    schedCheckboxes.forEach(cb => {
+                        cb.checked = isChecked;
+                    });
+                    syncBulkDeleteUI();
+                });
+            }
+
+            schedCheckboxes.forEach(cb => {
+                cb.addEventListener('change', function () {
+                    syncBulkDeleteUI();
+                });
+            });
+
             syncSelections();
+        });
+    </script>
+
+    {{-- ── VIEW ROUTE MODAL ── --}}
+    <div id="route-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center px-4">
+        {{-- Backdrop --}}
+        <div id="route-modal-backdrop" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer transition-opacity duration-300 opacity-0" onclick="closeRouteModal()"></div>
+
+        {{-- Panel --}}
+        <div id="route-modal-dialog" class="relative z-10 bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:max-w-lg w-full p-8 scale-95 opacity-0 duration-300">
+            {{-- Header --}}
+            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-start justify-between">
+                <div>
+                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Route Preview</p>
+                    <h3 id="modal-title" class="font-bold text-slate-900 text-lg">Loading...</h3>
+                    <div class="flex flex-wrap gap-3 mt-2" id="modal-meta">
+                        {{-- filled by JS --}}
+                    </div>
+                </div>
+                <button onclick="closeRouteModal()" class="ml-4 p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-700">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Map --}}
+            <div id="route-map" style="height: 400px; z-index: 1;"></div>
+
+            {{-- Checkpoint List --}}
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 max-h-40 overflow-y-auto">
+                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Checkpoint Order</p>
+                <ol id="modal-checkpoint-list" class="flex flex-wrap gap-2">
+                    {{-- filled by JS --}}
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let routeMapInstance = null;
+
+        function openRouteModal(btn) {
+            const name      = btn.dataset.name;
+            const day       = btn.dataset.day;
+            const time      = btn.dataset.time;
+            const freq      = btn.dataset.frequency;
+            const truck     = btn.dataset.truck;
+            const collector = btn.dataset.collector;
+            const points    = JSON.parse(btn.dataset.points || '[]');
+
+            // Title
+            document.getElementById('modal-title').textContent = name || (day + ' Route');
+
+            // Meta badges
+            document.getElementById('modal-meta').innerHTML = `
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
+                    🗓️ ${day} &middot; ${time}
+                </span>
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
+                    🔁 ${freq}
+                </span>
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
+                    🚚 ${truck}
+                </span>
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
+                    👤 ${collector}
+                </span>
+            `;
+
+            // Checkpoint list
+            const ol = document.getElementById('modal-checkpoint-list');
+            ol.innerHTML = points.length === 0
+                ? '<li class="text-xs text-slate-400">No checkpoints assigned.</li>'
+                : points.map((p, i) => `
+                    <li class="inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1 rounded-lg">
+                        <span class="w-4 h-4 rounded-full bg-amber-400 text-white flex items-center justify-center text-[9px] font-extrabold shrink-0">${i+1}</span>
+                        ${p.name}
+                    </li>`).join('');
+
+            // Show modal
+            document.getElementById('route-modal').classList.remove('hidden');
+            document.getElementById('route-modal').classList.add('flex');
+            // animate dialog appearance
+            const dialog = document.getElementById('route-modal-dialog');
+            dialog.classList.remove('scale-95', 'opacity-0');
+            dialog.classList.add('scale-100', 'opacity-100');
+            document.body.style.overflow = 'hidden';
+
+            // Build map after a tick so the container is visible
+            setTimeout(() => buildRouteMap(points), 80);
+        }
+
+        function buildRouteMap(points) {
+            // Destroy previous instance
+            if (routeMapInstance) {
+                routeMapInstance.remove();
+                routeMapInstance = null;
+            }
+
+            const center = points.length > 0
+                ? [parseFloat(points[0].lat), parseFloat(points[0].lng)]
+                : [6.9214, 122.0790];
+
+            routeMapInstance = L.map('route-map').setView(center, 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(routeMapInstance);
+
+            if (points.length === 0) return;
+
+            const latlngs = [];
+
+            points.forEach((p, i) => {
+                const lat = parseFloat(p.lat);
+                const lng = parseFloat(p.lng);
+                latlngs.push([lat, lng]);
+
+                // Numbered div icon
+                const icon = L.divIcon({
+                    className: '',
+                    html: `<div style="
+                        width:28px;height:28px;border-radius:50%;
+                        background:#f59e0b;color:#fff;
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:11px;font-weight:800;
+                        border:2.5px solid #fff;
+                        box-shadow:0 2px 8px rgba(0,0,0,0.25);
+                    ">${i + 1}</div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+
+                L.marker([lat, lng], { icon })
+                    .addTo(routeMapInstance)
+                    .bindPopup(`<strong>#${i+1}: ${p.name}</strong>${p.address ? '<br><small style="color:#6b7280">' + p.address + '</small>' : ''}`);
+            });
+
+            // Route polyline
+            L.polyline(latlngs, {
+                color: '#3b82f6',
+                weight: 4,
+                opacity: 0.75,
+                dashArray: '8, 10'
+            }).addTo(routeMapInstance);
+
+            // Fit bounds
+            routeMapInstance.fitBounds(L.polyline(latlngs).getBounds(), { padding: [40, 40] });
+        }
+
+        function closeRouteModal() {
+            document.getElementById('route-modal').classList.add('hidden');
+            document.getElementById('route-modal').classList.remove('flex');
+            // reset dialog animation
+            const dialog = document.getElementById('route-modal-dialog');
+            dialog.classList.remove('scale-100', 'opacity-100');
+            dialog.classList.add('scale-95', 'opacity-0');
+            document.body.style.overflow = '';
+            if (routeMapInstance) {
+                routeMapInstance.remove();
+                routeMapInstance = null;
+            }
+        }
+
+        // Close on Escape
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeRouteModal();
         });
     </script>
 @endsection

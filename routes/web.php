@@ -59,7 +59,7 @@ Route::get('/dashboard/points-map', function () {
     // 5. Get today's collection schedule
     $today = strtolower(now()->format('l')); // e.g., 'monday'
     $todaySchedule = \App\Models\CollectionSchedule::where('barangay_id', $user->barangay_id)
-        ->where('day_of_week', $today)
+        ->where(fn($q) => $q->where('day_of_week', $today)->orWhere('day_of_week', 'everyday'))
         ->where('is_active', true)
         ->first();
 
@@ -228,25 +228,34 @@ Route::get('/dashboard/schedules', function () {
 Route::post('/dashboard/schedules', function (\Illuminate\Http\Request $request) {
     // 1. Validate the new form array data
     $request->validate([
-        'days_of_week' => 'required|array',
+        'name' => 'nullable|string|max:255',
+        'days_of_week' => 'required_unless:frequency,daily|array',
         'days_of_week.*' => 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
         'collection_time' => 'required',
         'frequency' => 'required|in:daily,weekly,bi-weekly,monthly', // Added 'monthly'
+        'truck_id' => 'nullable|exists:trucks,id',
         'default_truck_id' => 'nullable|exists:trucks,id',
+        'collector_id' => 'nullable|exists:users,id',
         'default_collector_id' => 'nullable|exists:users,id',
         'collection_points' => 'required|array', // Validates the dropdown
         'collection_points.*' => 'exists:collection_points,id'
     ]);
 
-    // 2. Loop through selected days and create a separate database row for each
-    foreach ($request->days_of_week as $day) {
+    // 2. Determine days of week to save: single 'everyday' row if frequency is daily
+    $days = $request->frequency === 'daily' ? ['everyday'] : $request->days_of_week;
+
+    $truckId = $request->default_truck_id ?? $request->truck_id;
+    $collectorId = $request->default_collector_id ?? $request->collector_id;
+
+    foreach ($days as $day) {
         $schedule = \App\Models\CollectionSchedule::create([
+            'name' => $request->name,
             'barangay_id' => auth()->user()->barangay_id,
             'day_of_week' => $day,
             'collection_time' => $request->collection_time,
             'frequency' => $request->frequency,
-            'default_truck_id' => $request->default_truck_id,
-            'default_collector_id' => $request->default_collector_id,
+            'default_truck_id' => $truckId,
+            'default_collector_id' => $collectorId,
             'is_active' => true,
         ]);
 
@@ -258,6 +267,17 @@ Route::post('/dashboard/schedules', function (\Illuminate\Http\Request $request)
 
     return redirect()->back()->with('success', 'Collection schedules saved and activated successfully!');
 })->middleware('auth')->name('dashboard.schedules.store');
+
+Route::post('/dashboard/schedules/bulk-delete', function (\Illuminate\Http\Request $request) {
+    $request->validate([
+        'ids' => 'required|array',
+        'ids.*' => 'exists:collection_schedules,id'
+    ]);
+
+    \App\Models\CollectionSchedule::destroy($request->ids);
+
+    return redirect()->back()->with('success', 'Selected schedules deleted successfully!');
+})->middleware('auth')->name('dashboard.schedules.bulk-delete');
 
 Route::post('/dashboard/schedules/{id}/toggle', function ($id) {
     $sched = \App\Models\CollectionSchedule::findOrFail($id);

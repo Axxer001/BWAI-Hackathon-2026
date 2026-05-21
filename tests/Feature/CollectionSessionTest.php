@@ -64,7 +64,7 @@ class CollectionSessionTest extends TestCase
         $response = $this->post(route('dashboard.start-route', $session->id));
 
         $response->assertRedirect();
-        $this->assertEquals('active', $session->fresh()->status);
+        $this->assertEquals('ongoing', $session->fresh()->status);
         $this->assertNotNull($session->fresh()->started_at);
     }
 
