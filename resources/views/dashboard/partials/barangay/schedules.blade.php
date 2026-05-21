@@ -21,7 +21,7 @@
         </div>
     @endif
 
-    {{-- ── FORM SECTION ── --}}
+    {{-- ── FORM SECTION (INLINE) ── --}}
     <div id="add-schedule" class="bg-white rounded-2xl border border-slate-200 shadow-sm animate-slideUp mb-8 overflow-visible" style="animation-delay: 0.1s;">
 
         {{-- Form Header --}}
@@ -95,8 +95,6 @@
                                     class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-amber-300 focus:bg-white transition-all" />
                             </label>
                         </div>
-
-
                     </div>
 
                     {{-- ── RIGHT COLUMN: Assets & Checkpoints ── --}}
@@ -136,21 +134,24 @@
 
                         <div>
                             <span class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">
-                                Collection Points <span class="text-red-500">*</span>
+                                Route Sequence / Collection Points <span class="text-red-500">*</span>
                             </span>
 
-                            @if($collectionPoints->isEmpty())
+                            @if($garbagePoints->isEmpty())
                                 <div class="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-600 font-medium">
                                     No active collection points found.
                                 </div>
                             @else
+                                {{-- Map Container for selecting points --}}
+                                <div id="form-map" class="w-full h-64 rounded-xl border border-slate-200 mb-3 z-0 relative"></div>
+
                                 @php
-                                    $grouped = $collectionPoints->groupBy(fn($p) => $p->barangay->name ?? 'General Zone');
+                                    $grouped = $garbagePoints->groupBy(fn($p) => $p->barangay->name ?? 'General Zone');
                                 @endphp
 
                                 <div id="checkpoint-hidden-inputs"></div>
 
-                                <div class="relative" id="checkpoint-dropdown-wrapper">
+                                <div class="relative z-10" id="checkpoint-dropdown-wrapper">
                                     <button type="button" id="checkpoint-trigger"
                                         class="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-500 outline-none focus:ring-2 focus:ring-amber-300 focus:bg-white transition-all cursor-pointer hover:border-slate-300">
                                         <span id="checkpoint-trigger-label">-- Select Collection Points --</span>
@@ -181,9 +182,6 @@
                                                     <div class="flex items-center gap-2 px-4 pt-3 pb-1.5">
                                                         <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{{ $groupName }}</span>
                                                         <div class="flex-1 h-px bg-slate-100"></div>
-                                                        <button type="button"
-                                                            class="select-group-btn text-[10px] font-bold text-amber-600 hover:text-amber-700 transition-colors"
-                                                            data-group-id="{{ Str::slug($groupName) }}">Select all</button>
                                                     </div>
                                                     @foreach($points as $point)
                                                         <label class="checkpoint-item flex items-start gap-3 px-4 py-2.5 cursor-pointer hover:bg-amber-50 transition-colors group"
@@ -194,13 +192,16 @@
                                                                 class="checkpoint-checkbox mt-0.5 w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-400 shrink-0"
                                                                 value="{{ $point->id }}"
                                                                 data-label="{{ $point->name }}"
+                                                                data-lat="{{ $point->latitude }}"
+                                                                data-lng="{{ $point->longitude }}"
                                                                 data-group="{{ Str::slug($groupName) }}">
-                                                            <div class="min-w-0">
+                                                            <div class="min-w-0 flex-1">
                                                                 <p class="text-sm font-semibold text-slate-700 group-hover:text-slate-900 leading-tight">{{ $point->name }}</p>
                                                                 @if($point->address)
                                                                     <p class="text-xs text-slate-400 mt-0.5 truncate">{{ \Illuminate\Support\Str::limit($point->address, 45) }}</p>
                                                                 @endif
                                                             </div>
+                                                            <span class="checkpoint-order-badge hidden w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold"></span>
                                                         </label>
                                                     @endforeach
                                                 </div>
@@ -276,7 +277,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-slate-600 font-medium">
-                        @forelse($schedules as $sched)
+                        @forelse($groupedSchedules as $sched)
                             <tr class="hover:bg-slate-50/50 transition-colors">
                                 <td class="px-6 py-4 text-center">
                                     <input type="checkbox" name="ids[]" value="{{ $sched->id }}" class="schedule-checkbox w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500 cursor-pointer">
@@ -285,11 +286,11 @@
                                     @if($sched->name)
                                         <p class="font-extrabold text-slate-900 text-sm tracking-tight mb-1">{{ $sched->name }}</p>
                                     @endif
-                                    <p class="font-bold text-slate-800 capitalize text-xs flex items-center gap-1.5">
+                                    <p class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
                                         @if(!$sched->name)
                                             <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                                         @endif
-                                        {{ $sched->day_of_week === 'everyday' ? 'Every Day' : $sched->day_of_week }}
+                                        {{ $sched->formatted_days }}
                                     </p>
                                     <p class="text-xs text-slate-500 mt-0.5 font-medium">
                                         {{ date('h:i A', strtotime($sched->collection_time)) }}
@@ -310,7 +311,7 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200 shadow-sm">
-                                        {{ $sched->collectionPoints->count() }} Points
+                                        {{ $sched->garbagePoints->count() }} Points
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">
@@ -324,27 +325,20 @@
                                     <div class="flex items-center justify-end gap-2">
                                         <button type="button"
                                             onclick="openRouteModal(this)"
-                                            data-name="{{ $sched->name ?? ($sched->day_of_week === 'everyday' ? 'Every Day' : ucfirst($sched->day_of_week)) }}"
-                                            data-day="{{ $sched->day_of_week === 'everyday' ? 'Every Day' : ucfirst($sched->day_of_week) }}"
+                                            data-name="{{ $sched->name ?? $sched->formatted_days }}"
+                                            data-day="{{ $sched->formatted_days }}"
                                             data-time="{{ date('h:i A', strtotime($sched->collection_time)) }}"
                                             data-frequency="{{ ucfirst(str_replace('-', ' ', $sched->frequency)) }}"
                                             data-truck="{{ $sched->truck->plate_number ?? 'Unassigned' }}"
                                             data-collector="{{ $sched->collector->full_name ?? 'Unassigned' }}"
-                                            data-points='@json($sched->collectionPoints)'
+                                            data-points='@json($sched->garbagePoints)'
                                             class="text-xs text-blue-600 hover:text-blue-800 font-bold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors border border-blue-200 shadow-sm">
                                             🗺️ View Route
                                         </button>
-                                        <form method="POST" action="{{ route('dashboard.schedules.toggle', $sched->id) }}">
-                                            @csrf
-                                            <button type="submit" class="text-xs text-slate-600 hover:text-slate-800 font-bold bg-white hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200 shadow-sm">
-                                                {{ $sched->is_active ? 'Pause' : 'Resume' }}
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="{{ route('dashboard.schedules.delete', $sched->id) }}" onsubmit="return confirm('Delete this schedule?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-xs text-rose-600 hover:text-rose-800 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors border border-rose-200 shadow-sm">Delete</button>
-                                        </form>
+                                        <button type="submit" formaction="{{ route('dashboard.schedules.toggle', $sched->id) }}" class="text-xs text-slate-600 hover:text-slate-800 font-bold bg-white hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200 shadow-sm">
+                                            {{ $sched->is_active ? 'Pause' : 'Resume' }}
+                                        </button>
+                                        <button type="submit" formaction="{{ route('dashboard.schedules.delete', $sched->id) }}" onclick="return confirm('Delete this schedule?')" class="text-xs text-rose-600 hover:text-rose-800 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors border border-rose-200 shadow-sm">Delete</button>
                                     </div>
                                 </td>
                             </tr>
@@ -435,30 +429,118 @@
                 });
             }
 
-            function syncSelections() {
-                const checked = document.querySelectorAll('.checkpoint-checkbox:checked');
+            let selectedSequence = [];
+            let formMapInstance = null;
+            let formMarkers = {};
 
-                hiddenInputs.innerHTML = '';
-                checked.forEach(cb => {
-                    const inp = document.createElement('input');
-                    inp.type  = 'hidden';
-                    inp.name  = 'collection_points[]';
-                    inp.value = cb.value;
-                    hiddenInputs.appendChild(inp);
+            // Initialize Form Map
+            const formMapContainer = document.getElementById('form-map');
+            if (formMapContainer) {
+                formMapInstance = L.map('form-map').setView([6.9214, 122.0790], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(formMapInstance);
+                
+                const bounds = [];
+                document.querySelectorAll('.checkpoint-checkbox').forEach(cb => {
+                    const lat = parseFloat(cb.dataset.lat);
+                    const lng = parseFloat(cb.dataset.lng);
+                    if(!isNaN(lat) && !isNaN(lng)) {
+                        bounds.push([lat, lng]);
+                        
+                        // Default Unselected Icon
+                        const defaultIcon = L.divIcon({
+                            className: '',
+                            html: `<div style="width:20px;height:20px;border-radius:50%;background:#cbd5e1;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>`,
+                            iconSize: [20, 20], iconAnchor: [10, 10]
+                        });
+                        
+                        const marker = L.marker([lat, lng], { icon: defaultIcon }).addTo(formMapInstance)
+                            .bindTooltip(cb.dataset.label, { direction: 'top', offset: [0, -10] });
+                            
+                        marker.on('click', () => {
+                            cb.checked = !cb.checked;
+                            cb.dispatchEvent(new Event('change'));
+                        });
+                        
+                        formMarkers[cb.value] = marker;
+                    }
+                });
+                
+                if(bounds.length > 0) formMapInstance.fitBounds(bounds, { padding: [20, 20] });
+            }
+
+            function syncSelections() {
+                // Update selectedSequence
+                document.querySelectorAll('.checkpoint-checkbox').forEach(cb => {
+                    if (cb.checked && !selectedSequence.includes(cb.value)) {
+                        selectedSequence.push(cb.value);
+                    } else if (!cb.checked && selectedSequence.includes(cb.value)) {
+                        selectedSequence = selectedSequence.filter(v => v !== cb.value);
+                    }
                 });
 
+                hiddenInputs.innerHTML = '';
                 tagsContainer.innerHTML = '';
-                checked.forEach(cb => {
+                
+                // Draw Polylines and Update Markers
+                if (formMapInstance) {
+                    if (window.formPolyline) formMapInstance.removeLayer(window.formPolyline);
+                    const latlngs = [];
+                    selectedSequence.forEach((val, i) => {
+                        const cb = document.querySelector(`.checkpoint-checkbox[value="${val}"]`);
+                        if(cb) latlngs.push([parseFloat(cb.dataset.lat), parseFloat(cb.dataset.lng)]);
+                    });
+                    if (latlngs.length > 1) {
+                        window.formPolyline = L.polyline(latlngs, { color: '#f59e0b', weight: 3, dashArray: '5, 5' }).addTo(formMapInstance);
+                    }
+                }
+
+                // Reset all badges
+                document.querySelectorAll('.checkpoint-order-badge').forEach(badge => badge.classList.add('hidden'));
+                Object.values(formMarkers).forEach(m => {
+                    m.setIcon(L.divIcon({
+                        className: '',
+                        html: `<div style="width:20px;height:20px;border-radius:50%;background:#cbd5e1;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>`,
+                        iconSize: [20, 20], iconAnchor: [10, 10]
+                    }));
+                });
+
+                selectedSequence.forEach((val, i) => {
+                    const cb = document.querySelector(`.checkpoint-checkbox[value="${val}"]`);
+                    if (!cb) return;
+                    
+                    const inp = document.createElement('input');
+                    inp.type  = 'hidden';
+                    inp.name  = 'garbage_points[]';
+                    inp.value = val;
+                    hiddenInputs.appendChild(inp);
+
                     const tag = document.createElement('span');
                     tag.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-lg';
-                    tag.innerHTML = `${cb.dataset.label}
-                        <button type="button" data-val="${cb.value}" class="remove-tag ml-0.5 text-amber-400 hover:text-rose-500 transition-colors leading-none">
+                    tag.innerHTML = `<span class="w-4 h-4 rounded-full bg-amber-400 text-white flex items-center justify-center text-[9px] font-extrabold shrink-0">${i+1}</span>
+                        ${cb.dataset.label}
+                        <button type="button" data-val="${val}" class="remove-tag ml-0.5 text-amber-400 hover:text-rose-500 transition-colors leading-none">
                             <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>`;
                     tagsContainer.appendChild(tag);
+                    
+                    // Update list badge
+                    const badge = cb.closest('.checkpoint-item').querySelector('.checkpoint-order-badge');
+                    if (badge) {
+                        badge.textContent = i + 1;
+                        badge.classList.remove('hidden');
+                    }
+                    
+                    // Update map marker
+                    if (formMarkers[val]) {
+                        formMarkers[val].setIcon(L.divIcon({
+                            className: '',
+                            html: `<div style="width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,0.3);">${i + 1}</div>`,
+                            iconSize: [24, 24], iconAnchor: [12, 12]
+                        }));
+                    }
                 });
 
-                const n = checked.length;
+                const n = selectedSequence.length;
                 countLabel.textContent  = `${n} selected`;
                 triggerLabel.textContent = n === 0 ? '-- Select Collection Points --' : `${n} checkpoint${n > 1 ? 's' : ''} selected`;
                 triggerLabel.classList.toggle('text-slate-700', n > 0);
@@ -547,19 +629,20 @@
         });
     </script>
 
-    {{-- ── VIEW ROUTE MODAL ── --}}
-    <div id="route-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center px-4">
+    {{-- ── VIEW ROUTE MODAL (PUSHED TO ROOT SO BACKDROP COVERS SIDEBAR) ── --}}
+    @push('modals')
+    <div id="route-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center px-4">
         {{-- Backdrop --}}
         <div id="route-modal-backdrop" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer transition-opacity duration-300 opacity-0" onclick="closeRouteModal()"></div>
 
         {{-- Panel --}}
-        <div id="route-modal-dialog" class="relative z-10 bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:max-w-lg w-full p-8 scale-95 opacity-0 duration-300">
+        <div id="route-modal-dialog" class="relative z-10 bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:max-w-xl w-full p-6 sm:p-8 scale-95 opacity-0 duration-300">
             {{-- Header --}}
-            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-start justify-between">
+            <div class="mb-5 flex items-start justify-between">
                 <div>
                     <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Route Preview</p>
                     <h3 id="modal-title" class="font-bold text-slate-900 text-lg">Loading...</h3>
-                    <div class="flex flex-wrap gap-3 mt-2" id="modal-meta">
+                    <div class="flex flex-wrap gap-2 mt-2.5" id="modal-meta">
                         {{-- filled by JS --}}
                     </div>
                 </div>
@@ -571,17 +654,18 @@
             </div>
 
             {{-- Map --}}
-            <div id="route-map" style="height: 400px; z-index: 1;"></div>
+            <div id="route-map" class="rounded-xl border border-slate-200 shadow-inner" style="height: 380px; z-index: 1;"></div>
 
             {{-- Checkpoint List --}}
-            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 max-h-40 overflow-y-auto">
-                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Checkpoint Order</p>
+            <div class="mt-5 max-h-32 overflow-y-auto pr-2">
+                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 sticky top-0 bg-white">Checkpoint Order</p>
                 <ol id="modal-checkpoint-list" class="flex flex-wrap gap-2">
                     {{-- filled by JS --}}
                 </ol>
             </div>
         </div>
     </div>
+    @endpush
 
     <script>
         let routeMapInstance = null;
@@ -600,16 +684,16 @@
 
             // Meta badges
             document.getElementById('modal-meta').innerHTML = `
-                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
                     🗓️ ${day} &middot; ${time}
                 </span>
-                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
                     🔁 ${freq}
                 </span>
-                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
                     🚚 ${truck}
                 </span>
-                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
                     👤 ${collector}
                 </span>
             `;
@@ -619,22 +703,30 @@
             ol.innerHTML = points.length === 0
                 ? '<li class="text-xs text-slate-400">No checkpoints assigned.</li>'
                 : points.map((p, i) => `
-                    <li class="inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1 rounded-lg">
+                    <li class="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1 rounded-lg">
                         <span class="w-4 h-4 rounded-full bg-amber-400 text-white flex items-center justify-center text-[9px] font-extrabold shrink-0">${i+1}</span>
                         ${p.name}
                     </li>`).join('');
 
             // Show modal
-            document.getElementById('route-modal').classList.remove('hidden');
-            document.getElementById('route-modal').classList.add('flex');
-            // animate dialog appearance
+            const modal = document.getElementById('route-modal');
+            const backdrop = document.getElementById('route-modal-backdrop');
             const dialog = document.getElementById('route-modal-dialog');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Trigger reflow
+            void modal.offsetWidth;
+
+            backdrop.classList.remove('opacity-0');
             dialog.classList.remove('scale-95', 'opacity-0');
             dialog.classList.add('scale-100', 'opacity-100');
+            
             document.body.style.overflow = 'hidden';
 
             // Build map after a tick so the container is visible
-            setTimeout(() => buildRouteMap(points), 80);
+            setTimeout(() => buildRouteMap(points), 100);
         }
 
         function buildRouteMap(points) {
@@ -645,7 +737,7 @@
             }
 
             const center = points.length > 0
-                ? [parseFloat(points[0].lat), parseFloat(points[0].lng)]
+                ? [parseFloat(points[0].latitude || points[0].lat), parseFloat(points[0].longitude || points[0].lng)]
                 : [6.9214, 122.0790];
 
             routeMapInstance = L.map('route-map').setView(center, 14);
@@ -659,8 +751,8 @@
             const latlngs = [];
 
             points.forEach((p, i) => {
-                const lat = parseFloat(p.lat);
-                const lng = parseFloat(p.lng);
+                const lat = parseFloat(p.latitude || p.lat);
+                const lng = parseFloat(p.longitude || p.lng);
                 latlngs.push([lat, lng]);
 
                 // Numbered div icon
@@ -696,22 +788,31 @@
         }
 
         function closeRouteModal() {
-            document.getElementById('route-modal').classList.add('hidden');
-            document.getElementById('route-modal').classList.remove('flex');
-            // reset dialog animation
+            const modal = document.getElementById('route-modal');
+            const backdrop = document.getElementById('route-modal-backdrop');
             const dialog = document.getElementById('route-modal-dialog');
+
+            backdrop.classList.add('opacity-0');
             dialog.classList.remove('scale-100', 'opacity-100');
             dialog.classList.add('scale-95', 'opacity-0');
+            
             document.body.style.overflow = '';
-            if (routeMapInstance) {
-                routeMapInstance.remove();
-                routeMapInstance = null;
-            }
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                if (routeMapInstance) {
+                    routeMapInstance.remove();
+                    routeMapInstance = null;
+                }
+            }, 300); // Wait for transition
         }
 
         // Close on Escape
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') closeRouteModal();
+            if (e.key === 'Escape' && !document.getElementById('route-modal').classList.contains('hidden')) {
+                closeRouteModal();
+            }
         });
     </script>
 @endsection

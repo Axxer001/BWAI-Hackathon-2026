@@ -86,16 +86,21 @@ class CollectionSessionController extends Controller
                 'status'       => 'pending',
             ]);
 
-            // Link garbage points to this session
-            $points = GarbagePoint::where('barangay_id', $barangayId)
-                ->where('is_active', true)
-                ->get();
+            // Link garbage points to this session using the schedule's defined sequence
+            $points = $schedule->garbagePoints;
+
+            if ($points->isEmpty()) {
+                // Fallback if schedule has no points
+                $points = GarbagePoint::where('barangay_id', $barangayId)
+                    ->where('is_active', true)
+                    ->get();
+            }
 
             foreach ($points as $index => $point) {
                 SessionPoint::create([
                     'session_id' => $session->id,
                     'garbage_point_id' => $point->id,
-                    'route_order' => $index + 1,
+                    'route_order' => $point->pivot ? $point->pivot->sequence : ($index + 1),
                     'status' => 'pending',
                 ]);
             }
@@ -148,16 +153,20 @@ class CollectionSessionController extends Controller
                 'status'       => 'pending',
             ]);
 
-            // Get garbage points for this barangay
-            $points = GarbagePoint::where('barangay_id', $barangayId)
-                ->where('is_active', true)
-                ->get();
+            // Get garbage points for this barangay using schedule sequence
+            $points = $schedule->garbagePoints;
+
+            if ($points->isEmpty()) {
+                $points = GarbagePoint::where('barangay_id', $barangayId)
+                    ->where('is_active', true)
+                    ->get();
+            }
 
             foreach ($points as $index => $point) {
                 SessionPoint::create([
                     'session_id' => $session->id,
                     'garbage_point_id' => $point->id,
-                    'route_order' => $index + 1,
+                    'route_order' => $point->pivot ? $point->pivot->sequence : ($index + 1),
                     'status' => 'pending',
                 ]);
             }

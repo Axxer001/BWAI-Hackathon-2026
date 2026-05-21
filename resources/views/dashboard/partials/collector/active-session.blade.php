@@ -17,7 +17,7 @@
 
     <div class="max-w-2xl bg-white rounded-2xl border border-slate-200 shadow-sm p-8 animate-slideUp" style="animation-delay: 0.1s;">
 
-        @if($activeSession)
+        @if($activeSession && $activeSession->status === 'ongoing')
             {{-- ── SHIFT IS RUNNING ── --}}
             <div class="flex items-center gap-4 mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
                 <div class="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center flex-shrink-0">
@@ -77,7 +77,7 @@
                 <div class="flex justify-between items-start pt-0.5">
                     <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Checkpoints</span>
                     <div class="flex flex-wrap gap-1.5 justify-end max-w-xs">
-                        @forelse($todaySchedule->collectionPoints as $point)
+                        @forelse($todaySchedule->garbagePoints as $point)
                             <span class="inline-flex items-center px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-lg">
                                 {{ $point->name }}
                             </span>
@@ -95,11 +95,11 @@
         @endif
 
         {{-- ── ACTIONS ── --}}
-        @if($activeSession)
+        @if($activeSession && $activeSession->status === 'ongoing')
             <div class="space-y-4">
                 <a href="{{ route('dashboard.route-map') }}"
                     class="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-center tracking-wide shadow-lg shadow-blue-600/30 transition-all hover:-translate-y-0.5 flex justify-center items-center gap-2">
-                    GO TO ASSIGNED ROUTE MAP
+                    RETURN TO ROUTE MAP
                 </a>
                 <form action="{{ route('dashboard.complete-route', $activeSession->id) }}" method="POST">
                     @csrf
@@ -110,17 +110,14 @@
                 </form>
             </div>
         @else
-            <form action="{{ route('dashboard.start-session') }}" method="POST">
-                @csrf
-                <button type="submit" @unless($todaySchedule) disabled @endunless
-                    class="w-full py-4 rounded-xl font-bold tracking-wide transition-all hover:-translate-y-0.5 flex justify-center items-center gap-2
-                        {{ $todaySchedule
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30'
-                            : 'bg-slate-200 text-slate-400 cursor-not-allowed' }}">
-                    <span class="w-2 h-2 rounded-full {{ $todaySchedule ? 'bg-white animate-ping' : 'bg-slate-400' }}"></span>
-                    START COLLECTION SESSION
-                </button>
-            </form>
+            <a href="{{ $todaySchedule ? route('dashboard.route-map') : '#' }}" 
+                class="w-full py-4 rounded-xl font-bold tracking-wide transition-all hover:-translate-y-0.5 flex justify-center items-center gap-2
+                    {{ $todaySchedule
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none' }}">
+                <span class="w-2 h-2 rounded-full {{ $todaySchedule ? 'bg-white animate-ping' : 'bg-slate-400' }}"></span>
+                START COLLECTION SESSION
+            </a>
         @endif
     </div>
 @endsection

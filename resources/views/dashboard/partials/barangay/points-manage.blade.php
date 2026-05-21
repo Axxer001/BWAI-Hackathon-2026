@@ -17,7 +17,7 @@
 
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 animate-slideUp">
         <div>
-            <h1 class="font-syne text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">ðŸ“ Collection Points Manager</h1>
+            <h1 class="font-syne text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Collection Points Manager</h1>
             <p class="text-sm text-slate-500 font-medium">Designate waste drop-off zones, monitor capacities, and track live collection progress.</p>
         </div>
     </div>

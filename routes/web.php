@@ -199,12 +199,31 @@ Route::get('/dashboard/schedules', function () {
     $barangayId = auth()->user()->barangay_id;
 
     // 1. Get the schedules and load their relationships (trucks, collectors, points)
-    $schedules = \App\Models\CollectionSchedule::with(['truck', 'collector', 'collectionPoints'])
+    $schedules = \App\Models\CollectionSchedule::with(['truck', 'collector', 'garbagePoints'])
         ->where('barangay_id', $barangayId)
         ->get();
 
+    // Group schedules by name to display one row per route
+    $groupedSchedules = $schedules->groupBy('name')->map(function ($group) {
+        $first = $group->first();
+        // Format days: 'monday' -> 'Mon', etc.
+        $days = $group->pluck('day_of_week')->map(function ($day) {
+            if ($day === 'everyday') return 'Every Day';
+            $abbreviations = [
+                'monday' => 'M', 'tuesday' => 'T', 'wednesday' => 'W',
+                'thursday' => 'TH', 'friday' => 'F', 'saturday' => 'Sat', 'sunday' => 'Sun'
+            ];
+            return $abbreviations[strtolower($day)] ?? ucfirst(substr($day, 0, 3));
+        })->toArray();
+        
+        $first->formatted_days = implode(', ', $days);
+        $first->grouped_count = $group->count();
+        $first->schedule_ids = $group->pluck('id')->toArray();
+        return $first;
+    })->values();
+
     // 2. Calculate Stats
-    $activeRoutes = $schedules->where('is_active', true)->count();
+    $activeRoutes = $groupedSchedules->where('is_active', true)->count();
     $assignedPersonnel = \App\Models\User::where('barangay_id', $barangayId)
         ->where('role', 'collector')
         ->count();
@@ -212,16 +231,17 @@ Route::get('/dashboard/schedules', function () {
     // 3. Fetch data for the form dropdowns
     $trucks = \App\Models\Truck::where('barangay_id', $barangayId)->where('is_active', true)->get();
     $collectors = \App\Models\User::where('barangay_id', $barangayId)->where('role', 'collector')->get();
-    $collectionPoints = \App\Models\CollectionPoint::where('barangay_id', $barangayId)->where('is_active', true)->get();
+    $garbagePoints = \App\Models\GarbagePoint::where('barangay_id', $barangayId)->where('is_active', true)->get();
 
     // 4. Pass EVERYTHING to the view
     return view('dashboard.partials.barangay.schedules', compact(
         'schedules',
+        'groupedSchedules',
         'activeRoutes',
         'assignedPersonnel',
         'trucks',
         'collectors',
-        'collectionPoints'
+        'garbagePoints'
     ));
 })->middleware('auth')->name('dashboard.schedules');
 
@@ -232,13 +252,13 @@ Route::post('/dashboard/schedules', function (\Illuminate\Http\Request $request)
         'days_of_week' => 'required_unless:frequency,daily|array',
         'days_of_week.*' => 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
         'collection_time' => 'required',
-        'frequency' => 'required|in:daily,weekly,bi-weekly,monthly', // Added 'monthly'
+        'frequency' => 'required|in:daily,weekly,bi-weekly,monthly',
         'truck_id' => 'nullable|exists:trucks,id',
         'default_truck_id' => 'nullable|exists:trucks,id',
         'collector_id' => 'nullable|exists:users,id',
         'default_collector_id' => 'nullable|exists:users,id',
-        'collection_points' => 'required|array', // Validates the dropdown
-        'collection_points.*' => 'exists:collection_points,id'
+        'garbage_points' => 'required|array', // Validates the dropdown
+        'garbage_points.*' => 'exists:garbage_points,id'
     ]);
 
     // 2. Determine days of week to save: single 'everyday' row if frequency is daily
@@ -259,9 +279,13 @@ Route::post('/dashboard/schedules', function (\Illuminate\Http\Request $request)
             'is_active' => true,
         ]);
 
-        // 3. Attach the collection points to the pivot table
-        if ($request->has('collection_points')) {
-            $schedule->collectionPoints()->attach($request->collection_points);
+        // 3. Attach the garbage points to the pivot table with sequence order
+        if ($request->has('garbage_points')) {
+            $syncData = [];
+            foreach ($request->garbage_points as $index => $pointId) {
+                $syncData[$pointId] = ['sequence' => $index + 1];
+            }
+            $schedule->garbagePoints()->sync($syncData);
         }
     }
 

@@ -42,8 +42,10 @@ class CollectionSchedule extends Model
         return $this->belongsTo(User::class, 'default_collector_id');
     }
 
-    public function collectionPoints(): BelongsToMany
+    public function garbagePoints(): BelongsToMany
     {
-        return $this->belongsToMany(CollectionPoint::class, 'collection_point_schedule', 'schedule_id', 'collection_point_id');
+        return $this->belongsToMany(GarbagePoint::class, 'collection_schedule_garbage_point', 'schedule_id', 'garbage_point_id')
+                    ->withPivot('sequence')
+                    ->orderByPivot('sequence', 'asc');
     }
 }
