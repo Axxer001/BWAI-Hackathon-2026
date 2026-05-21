@@ -13,39 +13,42 @@ use App\Models\CollectionPoint;
 use App\Models\TruckFullEvent;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-
 class CollectionSessionController extends Controller
 {
-    /**
-     * Show the active session manager page (Start Active Shift).
-     */
     public function activeSession()
     {
-        $user = Auth::user();
-        $barangayId = $user->barangay_id ?? Barangay::first()->id;
+        $user = auth()->user();
 
-        // Auto-seed trucks if none exist
-        $this->ensureTrucksExist($barangayId);
-
-        // Find if there is an ongoing session
-        $activeSession = CollectionSession::where('collector_id', $user->id)
-            ->where('status', 'ongoing')
+        // 1. Fetch the active or pending session for the collector
+        $activeSession = CollectionSession::with('truck') 
+            ->where('collector_id', $user->id)
+            ->whereIn('status', ['pending', 'ongoing'])
             ->first();
 
-        // Get barangay boundary info
-        $barangay = Barangay::find($barangayId) ?? Barangay::first();
-        $boundaryName = $barangay ? $barangay->name : 'Zamboanga City';
+        // 2. Fetch available trucks for the form
+        $trucks = Truck::where('barangay_id', $user->barangay_id)
+            ->where('is_active', true)
+            ->get();
 
-        // Fetch active trucks
-        $trucks = Truck::where('barangay_id', $barangayId)->where('is_active', true)->get();
+        // 3. Fetch today's schedule for the barangay
+        $today = strtolower(now()->format('l')); // e.g., 'monday'
+        $todaySchedule = CollectionSchedule::where('barangay_id', $user->barangay_id)
+            ->where('day_of_week', $today)
+            ->where('is_active', true)
+            ->first();
+            
+        // We also need $boundaryName for the view when there is no active session
+        $boundaryName = $user->barangay->name ?? 'Zone';
 
-        return view('dashboard.partials.collector.active-session', compact('activeSession', 'boundaryName', 'trucks'));
+        // 4. Pass all variables to the view
+        return view('dashboard.partials.collector.active-session', compact(
+            'activeSession', 
+            'trucks', 
+            'todaySchedule',
+            'boundaryName'
+        ));
     }
-
-    /**
-     * Start the collection session from the shift manager.
-     */
-    public function startSession(Request $request)
+       public function startSession(Request $request)
     {
         $user = Auth::user();
         $barangayId = $user->barangay_id ?? Barangay::first()->id;
@@ -294,7 +297,8 @@ class CollectionSessionController extends Controller
             ->first();
 
         // Get collection points to display where they are at
-        $collectionPoints = CollectionPoint::where('barangay_id', $barangayId)
+        $collectionPoints = CollectionPoint::with('barangay')
+            ->where('barangay_id', $barangayId)
             ->where('is_active', true)
             ->get();
 

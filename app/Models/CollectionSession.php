@@ -67,6 +67,12 @@ class CollectionSession extends Model
         return $this->hasMany(SessionPoint::class, 'session_id')->orderBy('route_order');
     }
 
+    public function truck()
+    {
+        return $this->belongsTo(Truck::class, 'truck_id');
+    }
+
+
     public function nextPendingPoint(): ?SessionPoint
     {
         return $this->sessionPoints()

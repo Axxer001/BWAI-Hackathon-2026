@@ -150,49 +150,70 @@ Route::get('/dashboard', function () {
 
 // ─── BARANGAY ROUTES ─────────────────────────────────────────────────
 
+// ─── BARANGAY ROUTES ─────────────────────────────────────────────────
+
 Route::get('/dashboard/schedules', function () {
     $barangayId = auth()->user()->barangay_id;
 
-    // 1. Get the schedules
-    $schedules = \App\Models\CollectionSchedule::where('barangay_id', $barangayId)->get();
+    // 1. Get the schedules and load their relationships (trucks, collectors, points)
+    $schedules = \App\Models\CollectionSchedule::with(['truck', 'collector', 'collectionPoints'])
+        ->where('barangay_id', $barangayId)
+        ->get();
 
-    // 2. Calculate Active Routes (Count of schedules that are active)
-    $activeRoutes = \App\Models\CollectionSchedule::where('barangay_id', $barangayId)
-        ->where('is_active', true)
-        ->count();
-
-    // 3. Calculate Assigned Personnel (Count of collectors in this barangay)
+    // 2. Calculate Stats
+    $activeRoutes = $schedules->where('is_active', true)->count();
     $assignedPersonnel = \App\Models\User::where('barangay_id', $barangayId)
         ->where('role', 'collector')
         ->count();
 
-    // 4. Pass ALL variables to the view
-    return view('dashboard.partials.barangay.schedules', compact('schedules', 'activeRoutes', 'assignedPersonnel'));
+    // 3. Fetch data for the form dropdowns
+    $trucks = \App\Models\Truck::where('barangay_id', $barangayId)->where('is_active', true)->get();
+    $collectors = \App\Models\User::where('barangay_id', $barangayId)->where('role', 'collector')->get();
+    $collectionPoints = \App\Models\CollectionPoint::where('barangay_id', $barangayId)->where('is_active', true)->get();
+
+    // 4. Pass EVERYTHING to the view
+    return view('dashboard.partials.barangay.schedules', compact(
+        'schedules',
+        'activeRoutes',
+        'assignedPersonnel',
+        'trucks',
+        'collectors',
+        'collectionPoints'
+    ));
 })->middleware('auth')->name('dashboard.schedules');
 
-
-// Route::get('/dashboard/schedules', function () {
-//     $barangayId = auth()->user()->barangay_id;
-//     $schedules = \App\Models\CollectionSchedule::where('barangay_id', $barangayId)->get();
-//     return view('dashboard.partials.barangay.schedules', compact('schedules'));
-// })->name('dashboard.schedules');
-
 Route::post('/dashboard/schedules', function (\Illuminate\Http\Request $request) {
+    // 1. Validate the new form array data
     $request->validate([
-        'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+        'days_of_week' => 'required|array',
+        'days_of_week.*' => 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
         'collection_time' => 'required',
-        'frequency' => 'required|in:daily,weekly,bi-weekly',
+        'frequency' => 'required|in:daily,weekly,bi-weekly,monthly', // Added 'monthly'
+        'default_truck_id' => 'nullable|exists:trucks,id',
+        'default_collector_id' => 'nullable|exists:users,id',
+        'collection_points' => 'required|array', // Validates the dropdown
+        'collection_points.*' => 'exists:collection_points,id'
     ]);
 
-    \App\Models\CollectionSchedule::create([
-        'barangay_id' => auth()->user()->barangay_id,
-        'day_of_week' => $request->day_of_week,
-        'collection_time' => $request->collection_time,
-        'frequency' => $request->frequency,
-        'is_active' => true,
-    ]);
+    // 2. Loop through selected days and create a separate database row for each
+    foreach ($request->days_of_week as $day) {
+        $schedule = \App\Models\CollectionSchedule::create([
+            'barangay_id' => auth()->user()->barangay_id,
+            'day_of_week' => $day,
+            'collection_time' => $request->collection_time,
+            'frequency' => $request->frequency,
+            'default_truck_id' => $request->default_truck_id,
+            'default_collector_id' => $request->default_collector_id,
+            'is_active' => true,
+        ]);
 
-    return redirect()->back()->with('success', 'Collection schedule added successfully!');
+        // 3. Attach the collection points to the pivot table
+        if ($request->has('collection_points')) {
+            $schedule->collectionPoints()->attach($request->collection_points);
+        }
+    }
+
+    return redirect()->back()->with('success', 'Collection schedules saved and activated successfully!');
 })->middleware('auth')->name('dashboard.schedules.store');
 
 Route::post('/dashboard/schedules/{id}/toggle', function ($id) {
