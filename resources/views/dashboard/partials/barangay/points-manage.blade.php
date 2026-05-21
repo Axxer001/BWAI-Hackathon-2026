@@ -50,8 +50,8 @@
         </div>
     </div>
 
-    {{-- No-session Info Panel --}}
-    <div id="no-session-info" class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl mb-6 shadow-sm animate-slideUp" style="animation-delay: 0.05s;">
+    {{-- Info Panel --}}
+    <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl mb-6 shadow-sm animate-slideUp" style="animation-delay: 0.05s;">
         <p class="text-xs text-slate-700 font-semibold leading-relaxed">
             <strong>How to use:</strong> Click anywhere on the map to create a new collection point. 
             Click on an existing marker to calculate the estimated time of arrival (ETA) from your current location.
@@ -88,6 +88,39 @@
             </table>
         </div>
     </div>
+
+    {{-- WRAP YOUR MODAL IN THIS PUSH DIRECTIVE --}}
+    @push('modals')
+        {{-- ═══════════ SMALL CREATE POINT MODAL ═══════════ --}}
+        <div id="create-point-modal" class="fixed inset-0 z-[9999] hidden">
+            
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer transition-opacity duration-300" onclick="closeCreatePointModal()"></div>
+            
+            <div class="flex items-center justify-center min-h-screen px-4 pointer-events-none">
+                <div class="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-sm w-full p-6 relative pointer-events-auto transform transition-all animate-slideUp" style="animation-duration: 0.3s">
+                    
+                    <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    
+                    <h3 class="text-lg font-extrabold text-slate-900 mb-1">New Collection Point</h3>
+                    <p class="text-xs text-slate-500 mb-5">Enter a descriptive name for this new GPS drop-off zone.</p>
+                    
+                    <input type="text" id="new-point-name" placeholder="e.g., Zone 2 Main Hub" 
+                        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 transition-all mb-6"
+                        onkeypress="if(event.key === 'Enter') submitNewPoint()">
+                    
+                    <div class="flex gap-3">
+                        <button type="button" onclick="closeCreatePointModal()" class="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold transition-colors border border-slate-200">Cancel</button>
+                        <button type="button" onclick="submitNewPoint()" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-colors shadow-sm">Save Point</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endpush
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -307,13 +340,43 @@
             }
 
             // â”€â”€ Map click â€” create new point (only when no active session) â”€â”€â”€
+            // Variables to temporarily store coordinates when clicking the map
+            let pendingLat = null;
+            let pendingLng = null;
+
+            // Trigger modal on map click
             map.on('click', function (e) {
-                // Only allow adding points if banner is hidden (no active session)
-                if (!document.getElementById('live-banner').classList.contains('hidden')) return;
-                const name = prompt('Enter a name for this Collection Point:');
-                if (name) savePoint(e.latlng.lat, e.latlng.lng, name);
+                pendingLat = e.latlng.lat;
+                pendingLng = e.latlng.lng;
+                
+                document.getElementById('new-point-name').value = ''; // Clear old input
+                document.getElementById('create-point-modal').classList.remove('hidden');
+                
+                // Focus the input field automatically after the modal opens
+                setTimeout(() => document.getElementById('new-point-name').focus(), 100);
             });
 
+            // Modal logic: Close
+            window.closeCreatePointModal = function() {
+                document.getElementById('create-point-modal').classList.add('hidden');
+                pendingLat = null;
+                pendingLng = null;
+            };
+
+            // Modal logic: Submit
+            window.submitNewPoint = function() {
+                const nameInput = document.getElementById('new-point-name').value.trim();
+                
+                if (!nameInput) {
+                    alert('Please enter a name for the collection point.');
+                    return;
+                }
+                
+                savePoint(pendingLat, pendingLng, nameInput);
+                closeCreatePointModal(); // Hide modal after passing data to savePoint
+            };
+
+            // Execute the API fetch to save
             function savePoint(lat, lng, name) {
                 fetch('/api/garbage-points', {
                     method: 'POST',
